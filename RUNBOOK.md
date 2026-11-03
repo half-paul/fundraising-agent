@@ -13,7 +13,7 @@ make ps            # every service "healthy" or "running"
 Quick health probes (all should return 200):
 
 ```bash
-curl -s -o /dev/null -w 'raisin-api %{http_code}\n'        http://localhost:18080/health
+curl -s -o /dev/null -w 'fundraising-api %{http_code}\n'        http://localhost:18080/health
 curl -s -o /dev/null -w 'agent-runtime %{http_code}\n'     http://localhost:18090/health
 curl -s -o /dev/null -w 'litellm %{http_code}\n'           http://localhost:14000/health/liveliness
 curl -s -o /dev/null -w 'opa %{http_code}\n'               http://localhost:18181/health
@@ -37,7 +37,7 @@ output verdict), and a Jaeger + Phoenix link for the trace.
 
 | # | What it proves | What to look for |
 |---|---|---|
-| 0 | PCI path never touches AI | trace `raisin-api -> payment-gateway` only; no `gen_ai.*` span |
+| 0 | PCI path never touches AI | trace `fundraising-api -> payment-gateway` only; no `gen_ai.*` span |
 | 1 | Finance A, own tenant | model ALLOW, `get_donation` ALLOW, minimized `/api/donations/{id}`, output `pass` |
 | 2 | Donor role | finance tools withheld at model stage; only `search_kb` + `get_my_donations` offered (HTTP 403 `model_not_in_role` if forced onto claude-sonnet) |
 | 3 | Finance B on tenant A's data | `policy.decide` DENY `tenant_mismatch` (ABAC, red span, SIEM event); model gets `not_found`, answers "not found for your charity" |
@@ -165,7 +165,7 @@ make opa-query INPUT='{"stage":"tool","tool":"get_donation","subject":{"sub":"fi
 make opa-data PATH=roles/Donor/tools
 ```
 
-`roles.json` is read by OPA at start (`docker compose restart opa` after edits) and re-read by raisin-api on change
+`roles.json` is read by OPA at start (`docker compose restart opa` after edits) and re-read by fundraising-api on change
 (it re-checks role per endpoint, CSO F12).
 
 ## 6. Assertions and fail-closed tests
@@ -174,7 +174,7 @@ make opa-data PATH=roles/Donor/tools
 make test               # opa test + PCI-scope (no trace has both payment and gen_ai spans) + PII canary (canary email/phone in zero spans)
                         # + gateway content (no span of any service carries message attributes, F14)
                         # + data-tool API assertions (tenant filter in SQL, uniform 404, no donor PII, PIPs) without any LLM call
-make test-tools         # data tools end to end: raisin-api checks (tenant + role + service token, /donate integrity, OPA API authz),
+make test-tools         # data tools end to end: fundraising-api checks (tenant + role + service token, /donate integrity, OPA API authz),
                         # 14 NeMo rail regression phrases, response-envelope checks (DEBUG_PANEL on/off, no existence oracle),
                         # runtime tool-loop checks on gpt-4o-mini (need DEBUG_PANEL=on; skipped with a note otherwise)
 make test-fail-closed   # same, then stops opa, guardrails, nemo-guardrails, presidio-analyzer, presidio-anonymizer one at a time and
@@ -201,8 +201,8 @@ docker compose stop opa; make demo S=1; docker compose start opa     # expect 5x
 
 ### Jaeger (every request, full waterfall)  http://localhost:16686
 
-- Service `raisin-api`, click Find Traces. One trace per request: `raisin-api -> agent-runtime (assistant.run) ->
-  policy.decide / guardrail.input / chat <model> (litellm span nested under it) / execute_tool -> raisin-api PIP /
+- Service `fundraising-api`, click Find Traces. One trace per request: `fundraising-api -> agent-runtime (assistant.run) ->
+  policy.decide / guardrail.input / chat <model> (litellm span nested under it) / execute_tool -> fundraising-api PIP /
   retrieve search_kb / guardrail.output`.
 - Red spans = policy deny or guardrail block. Click a span; the Tags panel shows `policy.stage`, `policy.result`,
   `policy.reason`, `policy.decision_id`, `policy.registry_revision`, `guardrail.verdict`, `gen_ai.usage.*`.
@@ -236,7 +236,7 @@ python3 scripts/siem_tail.py -f     # follow while you run scenarios in another 
 
 ```bash
 make logs                                            # all services, follow
-docker compose logs -f agent-runtime raisin-api      # request path only
+docker compose logs -f agent-runtime fundraising-api      # request path only
 docker compose logs -f litellm | grep -v health      # every /chat/completions and /embeddings hitting the gateway
 docker compose logs -f opa | grep decision_id        # OPA decision log: full input + result per decide call
 docker compose logs -f guardrails                    # classifier load (model, fallback), request log
@@ -271,8 +271,8 @@ curl -s localhost:14000/v1/chat/completions -H "Authorization: Bearer $LITELLM_M
 ### Database
 
 ```bash
-docker compose exec postgres psql -U poc -d raisin -c 'select id, tenant_id, status from donations order by id;'
-docker compose exec postgres psql -U poc -d raisin -c 'select d.id, d.tenant_id, r.id as donor_id, d.amount, d.status from donations d join donors r on r.id = d.donor_id order by d.id;'
+docker compose exec postgres psql -U poc -d fundraising -c 'select id, tenant_id, status from donations order by id;'
+docker compose exec postgres psql -U poc -d fundraising -c 'select d.id, d.tenant_id, r.id as donor_id, d.amount, d.status from donations d join donors r on r.id = d.donor_id order by d.id;'
 docker compose exec postgres psql -U poc -d kb     -c 'select doc_id, tenant_id, classification from chunks;'
 docker compose exec postgres psql -U poc -d litellm -c 'select key_alias, spend, max_budget from "LiteLLM_VerificationToken";'
 ```

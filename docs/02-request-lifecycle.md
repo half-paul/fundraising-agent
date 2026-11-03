@@ -12,9 +12,9 @@ Source: `../../diagrams/08-poc-assistant-request-sequence.mmd`. Real trace: [03-
 
 | # | Hop | Container | Span | What can stop the request here |
 |---|---|---|---|---|
-| 1 | Client posts `{question, model?, temperature?}` with a Bearer JWT | `raisin-api` | `POST /assistant` | 401 missing/invalid token |
-| 2 | JWT verified locally (RS256, `aud=aicp`, `iss=raisin-api`) | `raisin-api` | (attributes `enduser.id`, `tenant_id`, `role` on the span) | 401 |
-| 3 | Forward to runtime with the same `Authorization` header; httpx injects `traceparent` | `raisin-api` → `agent-runtime` | `POST /run` | runtime unreachable → 5xx |
+| 1 | Client posts `{question, model?, temperature?}` with a Bearer JWT | `fundraising-api` | `POST /assistant` | 401 missing/invalid token |
+| 2 | JWT verified locally (RS256, `aud=aicp`, `iss=fundraising-api`) | `fundraising-api` | (attributes `enduser.id`, `tenant_id`, `role` on the span) | 401 |
+| 3 | Forward to runtime with the same `Authorization` header; httpx injects `traceparent` | `fundraising-api` → `agent-runtime` | `POST /run` | runtime unreachable → 5xx |
 | 4 | JWT verified again against the JWKS (`/.well-known/jwks.json`, refetched on unknown or rotated kid) | `agent-runtime` | `assistant.run` root, `gen_ai.prompt.name=operations-agent-v1` (Finance; `assistant-system-v1` for Donor) | 401 |
 | 5 | **Model stage.** `POST /v1/data/aicp/authz/decision` with `{stage: model, subject, model, prompt}` | `agent-runtime` → `opa` | `policy.decide` (`policy.stage=model`) | 403 `policy_deny` (`model_not_in_role`, `unapproved_model`, `unapproved_prompt`, `unknown_role`, `unavailable`) |
 | 6 | OPA returns `model`, `allowed_tools`, `withheld_tools`, `retrieval_filter`, `registry_revision` | `opa` | (attributes `policy.tools.allowed`, `policy.tools.withheld`, `policy.registry_revision`) | |
@@ -27,7 +27,7 @@ Source: `../../diagrams/08-poc-assistant-request-sequence.mmd`. Real trace: [03-
 | 13 | **Output guardrail (a).** Presidio on the draft. Any EMAIL / PHONE / CC → refusal text replaces the answer. PERSON → `flagged` | `agent-runtime` → `presidio-analyzer` | `guardrail.output` → `guardrail.presidio.analyze` | soft: 200 with REFUSAL, `verdict=block`, `reason=pii_in_output` |
 | 14 | **Output guardrail (b).** `POST /v1/scan/output` `{text, prompt}`: NeMo `self check output`, `omni-moderation-latest` via LiteLLM, regex if enabled | `agent-runtime` → `guardrails` → `nemo-guardrails`, `litellm` | `guardrail.scan.output` → `guardrail.nemo`, `guardrail.moderation` | soft: 200 with REFUSAL, `reason=nemo:self check output` or `moderation:<category>` |
 | 15 | **Restore.** Finance / Participant: placeholders restored to originals. Donor: never restored; `presidio-anonymizer` masks PERSON to `<REDACTED>` | `agent-runtime` (→ `presidio-anonymizer` for Donor) | `guardrail.presidio.anonymize` | 400 `guardrail_unavailable` (Donor path) |
-| 16 | Envelope: `{answer, trace_id}` always; `policy`, `tool_calls`, `guardrails` only with `DEBUG_PANEL=on` | `agent-runtime` → `raisin-api` → client | | |
+| 16 | Envelope: `{answer, trace_id}` always; `policy`, `tool_calls`, `guardrails` only with `DEBUG_PANEL=on` | `agent-runtime` → `fundraising-api` → client | | |
 
 ## 2. Story path (`POST /story`)
 
@@ -47,10 +47,10 @@ Same skeleton as the assistant path with four differences:
 
 ## 3. Payment path (`POST /donate`), never AI
 
-No JWT (public form). `raisin-api` validates the tenant exists, upserts the donor without overwriting existing contact
+No JWT (public form). `fundraising-api` validates the tenant exists, upserts the donor without overwriting existing contact
 fields, takes the donation id from a database sequence (`extra=forbid` rejects a client-supplied id with 422), inserts a
 pending donation, calls `payment-gateway /charge` with `{amount, currency, payment_token}` only, records the transaction and
-updates the status. The trace contains `raisin-api` and `payment-gateway` spans and `db.query` spans, and nothing else.
+updates the status. The trace contains `fundraising-api` and `payment-gateway` spans and `db.query` spans, and nothing else.
 
 `make test` asserts the PCI-scope property on real traces: at least one trace touches `payment-gateway`, at least one has
 a `gen_ai.*` attribute, none has both. It also asserts the canary donor's email and phone (used in scenario 0) appear in
@@ -62,7 +62,7 @@ zero span attributes or events anywhere.
 
 Source: `../../diagrams/10-poc-tool-call-authorization.mmd`.
 
-The runtime holds no database credentials for the system of record. Every tool is a narrow HTTP call to `raisin-api` with
+The runtime holds no database credentials for the system of record. Every tool is a narrow HTTP call to `fundraising-api` with
 two credentials: the caller's JWT (who is asking) and the runtime's `X-Service-Token` (proves the call came through the
 control plane, so end users cannot hit `/api/*` directly).
 
@@ -75,7 +75,7 @@ Two shapes of tool:
   a foreign id are indistinguishable (no cross-tenant existence oracle). The OPA deny is still a red span with a `policy.deny`
   event and lands in the SIEM feed.
 - **Tenant-scoped tools** (`list_transactions`, `get_tenant_donation_summary`, `find_donor`, `get_my_donations`, `search_kb`):
-  the resource tenant is the caller's own, so OPA is asked with `resource.tenant_id = subject.tenant_id` and `raisin-api`
+  the resource tenant is the caller's own, so OPA is asked with `resource.tenant_id = subject.tenant_id` and `fundraising-api`
   filters by the JWT tenant in SQL. A deny here is returned as `{"error": "denied", "reason": ...}` because there is no
   foreign resource to hide.
 

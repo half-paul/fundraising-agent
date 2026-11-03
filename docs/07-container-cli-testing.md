@@ -4,7 +4,7 @@ Goal: exercise every container in isolation, with a real request and a real resp
 you ever trust the full `/assistant` round trip. Each section is self-contained: what must already be running,
 the exact command, the input, the expected output, and where to save it.
 
-Run everything from the repo root (`infra-pocs/raisin-agent/`). Start the stack once and leave it up for the whole
+Run everything from the repo root (`infra-pocs/fundraising-agent/`). Start the stack once and leave it up for the whole
 pass: `make up && make seed`.
 
 ## Recording convention
@@ -32,7 +32,7 @@ time; after that, jump straight to whichever container you changed.
 Not HTTP — inspect with `psql` through `docker compose exec`. No input to craft, just read back what `seed` wrote.
 
 ```bash
-docker compose exec postgres psql -U poc -d raisin -c \
+docker compose exec postgres psql -U poc -d fundraising -c \
   'select id, tenant_id, status from donations order by id;' \
   | tee test-output/postgres-donations.txt
 
@@ -229,36 +229,36 @@ up here, that is a real bug (donor PII should never reach this container).
 
 Details: [containers/payment-gateway.md](containers/payment-gateway.md).
 
-## 9. raisin-api
+## 9. fundraising-api
 
 The one service end users talk to. Three things to test independently: identity, the public donation form, and the
 system-of-record API (which needs *both* a JWT and the service token).
 
 ```bash
-curl -s -o /dev/null -w 'raisin-api %{http_code}\n' localhost:18080/health
+curl -s -o /dev/null -w 'fundraising-api %{http_code}\n' localhost:18080/health
 
 # identity: mint a token
 TOKEN=$(curl -s -X POST localhost:18080/auth/token -H 'Content-Type: application/json' \
-  -d '{"user":"finance.a@charity-a.test"}' | tee test-output/raisin-api-token.json \
+  -d '{"user":"finance.a@charity-a.test"}' | tee test-output/fundraising-api-token.json \
   | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
-echo "$TOKEN" > test-output/raisin-api-token.txt
+echo "$TOKEN" > test-output/fundraising-api-token.txt
 
-curl -s localhost:18080/.well-known/jwks.json | tee test-output/raisin-api-jwks.json | python3 -m json.tool
+curl -s localhost:18080/.well-known/jwks.json | tee test-output/fundraising-api-jwks.json | python3 -m json.tool
 
 # public donation form (no auth, server assigns the id)
 curl -s -X POST localhost:18080/donate -H 'Content-Type: application/json' \
   -d '{"tenant_id":"tenant-a","amount":25,"currency":"CAD","payment_token":"tok_decline_51",
        "donor":{"email":"someone@example.com","phone":"604-555-0100","name":"Some One"}}' \
-  | tee test-output/raisin-api-donate.json | python3 -m json.tool
+  | tee test-output/fundraising-api-donate.json | python3 -m json.tool
 
 # system-of-record API: needs the service token too
 SVC=$(grep ^RUNTIME_SERVICE_TOKEN= .env | cut -d= -f2)
 curl -s localhost:18080/api/donations/873928 -H "Authorization: Bearer $TOKEN" -H "X-Service-Token: $SVC" \
-  | tee test-output/raisin-api-donation-873928.json | python3 -m json.tool
+  | tee test-output/fundraising-api-donation-873928.json | python3 -m json.tool
 
 # same call, no service token -> expect 403
 curl -s -i localhost:18080/api/donations/873928 -H "Authorization: Bearer $TOKEN" \
-  | tee test-output/raisin-api-donation-no-service-token.txt
+  | tee test-output/fundraising-api-donation-no-service-token.txt
 ```
 
 **Expect**: `/health` 200; `/auth/token` returns `{"access_token": "..."}`; `/donate` returns `{"donation_id": ...,
@@ -267,7 +267,7 @@ donation (amount, currency, status, donor_id, transactions — never donor name/
 call returns `403 {"detail": "system-of-record API is reachable only through the agent runtime"}`. Every response
 carries `trace_id` — open it at `http://localhost:16686/trace/<trace_id>`.
 
-Details: [containers/raisin-api.md](containers/raisin-api.md).
+Details: [containers/fundraising-api.md](containers/fundraising-api.md).
 
 ## 10. agent-runtime
 
@@ -277,7 +277,7 @@ here tells you something about the orchestration, not about one dependency.
 ```bash
 curl -s -o /dev/null -w 'agent-runtime %{http_code}\n' localhost:18090/health
 
-# via raisin-api's /assistant forward (the only supported path; port 18090 is not meant for direct client traffic)
+# via fundraising-api's /assistant forward (the only supported path; port 18090 is not meant for direct client traffic)
 curl -s -X POST localhost:18080/assistant -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"question":"Why was donation 873928 declined?","model":"gpt-4o-mini","temperature":0}' \
   | tee test-output/agent-runtime-assistant.json | python3 -m json.tool

@@ -1,4 +1,4 @@
--- raisin: system of record
+-- fundraising: system of record
 CREATE TABLE IF NOT EXISTS tenants (id TEXT PRIMARY KEY, name TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS users (email TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id), role TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS donors (

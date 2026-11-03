@@ -177,8 +177,8 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
   <div class="tbl"><table>
     <thead><tr><th>Design box</th><th>Container(s)</th><th>What it decides</th></tr></thead>
     <tbody>
-      <tr><td class="k">Identity</td><td><code>raisin-api</code> (<code>/auth/token</code>, JWKS)</td><td>Who the caller is. <code>sub</code>, <code>tenant_id</code>, <code>role</code> come from a signed RS256 JWT, never from the prompt.</td></tr>
-      <tr><td class="k">Application APIs, backend, RDS</td><td><code>raisin-api</code> (<code>/assistant</code>, <code>/story</code>, <code>/api/*</code>, <code>/internal/*</code>), <code>postgres</code></td><td>Forwards claims to the runtime; serves minimized, tenant-filtered records to tools; owns the <code>ai_registry</code> table.</td></tr>
+      <tr><td class="k">Identity</td><td><code>fundraising-api</code> (<code>/auth/token</code>, JWKS)</td><td>Who the caller is. <code>sub</code>, <code>tenant_id</code>, <code>role</code> come from a signed RS256 JWT, never from the prompt.</td></tr>
+      <tr><td class="k">Application APIs, backend, RDS</td><td><code>fundraising-api</code> (<code>/assistant</code>, <code>/story</code>, <code>/api/*</code>, <code>/internal/*</code>), <code>postgres</code></td><td>Forwards claims to the runtime; serves minimized, tenant-filtered records to tools; owns the <code>ai_registry</code> table.</td></tr>
       <tr><td class="k">Payment gateway</td><td><code>payment-gateway</code></td><td>Approves or declines. Exists so the PCI boundary shows in traces.</td></tr>
       <tr><td class="k">AI Gateway</td><td><code>litellm</code> + <code>agent-runtime</code></td><td>LiteLLM: model routing, per-tenant virtual keys, budgets, one-line provider swap. Runtime: the tool loop and the Policy Enforcement Point.</td></tr>
       <tr><td class="k">Policy Engine</td><td><code>opa</code></td><td>Policy Decision Point. Model stage (which model, which tool schemas, which retrieval filter) and tool stage (per call, resource tenant must equal caller tenant).</td></tr>
@@ -189,7 +189,7 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
   </table></div>
   <div class="cols">
     <div class="callout"><strong>1. The model never sees what it may not use.</strong><p>OPA's model-stage decision returns <code>allowed_tools</code>; the runtime builds tool schemas from that list and nothing else. A Donor's model does not know <code>get_donation</code> exists. Retrieval gets the same treatment: OPA's <code>retrieval_filter</code> becomes the SQL <code>WHERE</code> on the vector search.</p></div>
-    <div class="callout amber"><strong>2. Every tool call is authorized twice, on the resource's tenant.</strong><p>Runtime resolves the owning tenant of the id through a Policy Information Point, asks OPA with <code>resource.tenant_id</code>, then <code>raisin-api</code> re-checks service token, JWT role and tenant in SQL. Two independent layers must both be wrong.</p></div>
+    <div class="callout amber"><strong>2. Every tool call is authorized twice, on the resource's tenant.</strong><p>Runtime resolves the owning tenant of the id through a Policy Information Point, asks OPA with <code>resource.tenant_id</code>, then <code>fundraising-api</code> re-checks service token, JWT role and tenant in SQL. Two independent layers must both be wrong.</p></div>
     <div class="callout green"><strong>3. PII is a placeholder from the moment it enters.</strong><p>Presidio finds PERSON, EMAIL, PHONE, CREDIT_CARD; the runtime swaps them for tokens and keeps the mapping in memory. Model, gateway, provider, judge, Jaeger and Phoenix all see the token. Output carrying raw contact data that was not a placeholder is refused.</p></div>
   </div>
 </section>
@@ -203,7 +203,7 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
   </div>
   <figure>
     <div class="fig-wrap">
-    <svg viewBox="0 0 1000 620" role="img" aria-label="Topology: client to raisin-api; raisin-api forwards to agent-runtime, which calls OPA, Presidio, guardrails (which calls NeMo, which calls LiteLLM), LiteLLM (to OpenAI and OpenRouter) and raisin-api /api backed by Postgres. The donate path goes raisin-api to payment-gateway only. All services export to otel-collector, which fans out to Jaeger, Phoenix and a SIEM file.">
+    <svg viewBox="0 0 1000 620" role="img" aria-label="Topology: client to fundraising-api; fundraising-api forwards to agent-runtime, which calls OPA, Presidio, guardrails (which calls NeMo, which calls LiteLLM), LiteLLM (to OpenAI and OpenRouter) and fundraising-api /api backed by Postgres. The donate path goes fundraising-api to payment-gateway only. All services export to otel-collector, which fans out to Jaeger, Phoenix and a SIEM file.">
       <defs>
         <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
         <marker id="ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--red)"/></marker>
@@ -211,7 +211,7 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
       </defs>
       <!-- zones -->
       <rect class="zone" x="228" y="14" width="200" height="470"/>
-      <text class="lbl-s" x="238" y="30">raisin platform (existing)</text>
+      <text class="lbl-s" x="238" y="30">fundraising platform (existing)</text>
       <rect class="zone" x="452" y="14" width="536" height="470"/>
       <text class="lbl-s" x="462" y="30">AI control plane (new)</text>
       <rect class="zone" x="12" y="500" width="976" height="108"/>
@@ -225,9 +225,9 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
       <text class="lbl-b" x="95" y="272" text-anchor="middle">Public donor form</text>
       <text class="lbl-s" x="95" y="288" text-anchor="middle">no JWT</text>
 
-      <!-- raisin-api -->
+      <!-- fundraising-api -->
       <rect class="box-blue" x="248" y="52" width="160" height="70" rx="4"/>
-      <text class="lbl-b" x="328" y="74" text-anchor="middle">raisin-api</text>
+      <text class="lbl-b" x="328" y="74" text-anchor="middle">fundraising-api</text>
       <text class="lbl-s" x="328" y="90" text-anchor="middle">identity · /assistant /story</text>
       <text class="lbl-s" x="328" y="104" text-anchor="middle">/api/* system of record · PIP</text>
       <text class="lbl-m" x="328" y="140" text-anchor="middle">:18080</text>
@@ -240,7 +240,7 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
       <!-- postgres -->
       <rect class="box" x="248" y="380" width="160" height="70" rx="4"/>
       <text class="lbl-b" x="328" y="402" text-anchor="middle">postgres (pgvector)</text>
-      <text class="lbl-s" x="328" y="418" text-anchor="middle">raisin · kb · litellm</text>
+      <text class="lbl-s" x="328" y="418" text-anchor="middle">fundraising · kb · litellm</text>
       <text class="lbl-s" x="328" y="432" text-anchor="middle">one role, three databases</text>
 
       <!-- agent-runtime -->
@@ -285,10 +285,10 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
       <text class="lbl" x="924" y="114" text-anchor="middle">OpenRouter</text>
       <text class="lbl-s" x="924" y="127" text-anchor="middle">claude-sonnet</text>
 
-      <!-- arrows: client -> raisin-api -->
+      <!-- arrows: client -> fundraising-api -->
       <path class="ln" d="M170,87 L248,87" marker-end="url(#ah)"/>
       <text class="lbl-s" x="209" y="80" text-anchor="middle">Bearer JWT</text>
-      <!-- raisin-api -> runtime -->
+      <!-- fundraising-api -> runtime -->
       <path class="ln-blue" d="M408,87 L472,87" marker-end="url(#ah-blue)"/>
       <text class="lbl-s" x="440" y="80" text-anchor="middle">POST /run</text>
       <!-- runtime -> opa -->
@@ -311,13 +311,13 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
       <!-- litellm -> providers -->
       <path class="ln" d="M840,66 L870,64" marker-end="url(#ah)"/>
       <path class="ln" d="M840,106 L870,114" marker-end="url(#ah)"/>
-      <!-- runtime -> raisin-api /api  (curved back) -->
+      <!-- runtime -> fundraising-api /api  (curved back) -->
       <path class="ln-blue" d="M472,112 C 440,112 440,130 408,116" marker-end="url(#ah-blue)"/>
       <text class="lbl-s" x="440" y="135" text-anchor="middle">tools → /api/* · /internal PIP</text>
       <text class="lbl-s" x="440" y="149" text-anchor="middle">JWT + X-Service-Token</text>
-      <!-- raisin-api -> postgres -->
+      <!-- fundraising-api -> postgres -->
       <path class="ln" d="M300,122 L300,380" marker-end="url(#ah)"/>
-      <text class="lbl-s" x="306" y="200">raisin db</text>
+      <text class="lbl-s" x="306" y="200">fundraising db</text>
       <!-- runtime -> kb -->
       <path class="ln-blue" d="M472,100 C 430,100 380,300 408,395" marker-end="url(#ah-blue)"/>
       <text class="lbl-s" x="392" y="340" text-anchor="end">search_kb → kb</text>
@@ -345,7 +345,7 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
       <text class="lbl-s" x="50" y="552">OTLP from every service (traceparent propagated)</text>
     </svg>
     </div>
-    <figcaption>Thirteen runtime containers. The runtime holds no database credentials for the system of record; it reaches donation, transaction and donor facts only through <code>raisin-api</code> with the caller's JWT plus its own service token. Source diagram: <code>diagrams/07-poc-container-topology.mmd</code>.</figcaption>
+    <figcaption>Thirteen runtime containers. The runtime holds no database credentials for the system of record; it reaches donation, transaction and donor facts only through <code>fundraising-api</code> with the caller's JWT plus its own service token. Source diagram: <code>diagrams/07-poc-container-topology.mmd</code>.</figcaption>
   </figure>
 </section>
 
@@ -362,7 +362,7 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
       <div class="tbl"><table>
         <thead><tr><th>Service</th><th>Image</th><th>Host port</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="k">postgres</td><td class="mono">pgvector 0.8.6-pg16</td><td class="n">15432</td><td>3 DBs: <code>litellm</code>, <code>raisin</code>, <code>kb</code>; volume <code>pgdata</code></td></tr>
+          <tr><td class="k">postgres</td><td class="mono">pgvector 0.8.6-pg16</td><td class="n">15432</td><td>3 DBs: <code>litellm</code>, <code>fundraising</code>, <code>kb</code>; volume <code>pgdata</code></td></tr>
           <tr><td class="k">litellm</td><td class="mono">v1.100.0</td><td class="n">14000</td><td>config <code>gateway/litellm-config.yaml</code>; keys/spend in DB</td></tr>
           <tr><td class="k">agent-runtime</td><td class="mono">own (FastAPI)</td><td class="n">18090</td><td>tool loop, PEP, guardrail clients</td></tr>
           <tr><td class="k">opa</td><td class="mono">1.20.2</td><td class="n">internal</td><td>token auth, <code>system_authz.rego</code>; policy + data bind-mounted</td></tr>
@@ -370,7 +370,7 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
           <tr><td class="k">nemo-guardrails</td><td class="mono">0.24.0 (own)</td><td class="n">18010</td><td>1.5 GB; config bind-mounted read-only</td></tr>
           <tr><td class="k">presidio-analyzer</td><td class="mono">latest (mcr)</td><td class="n">15001</td><td>1.5 GB</td></tr>
           <tr><td class="k">presidio-anonymizer</td><td class="mono">latest (mcr)</td><td class="n">15002</td><td>512 MB</td></tr>
-          <tr><td class="k">raisin-api</td><td class="mono">own (FastAPI)</td><td class="n">18080</td><td>identity, app API, system of record, console <code>/ui</code></td></tr>
+          <tr><td class="k">fundraising-api</td><td class="mono">own (FastAPI)</td><td class="n">18080</td><td>identity, app API, system of record, console <code>/ui</code></td></tr>
           <tr><td class="k">payment-gateway</td><td class="mono">own (stub)</td><td class="n">18070</td><td><code>tok_decline_*</code> declines with code 51</td></tr>
           <tr><td class="k">otel-collector</td><td class="mono">contrib 0.160.0</td><td class="n">14317/14318</td><td>two pipelines: all → Jaeger+Phoenix, filtered → SIEM file</td></tr>
           <tr><td class="k">jaeger</td><td class="mono">2.20.0</td><td class="n">16686</td><td>span tree per trace</td></tr>
@@ -382,7 +382,7 @@ figcaption{font-size:13px;color:var(--muted);max-width:80ch}
     <div>
       <h3>How it is wired</h3>
       <ul>
-        <li><strong>Boot order</strong> by health checks: postgres → litellm → opa, guardrails, nemo (needs litellm), presidio → agent-runtime → raisin-api.</li>
+        <li><strong>Boot order</strong> by health checks: postgres → litellm → opa, guardrails, nemo (needs litellm), presidio → agent-runtime → fundraising-api.</li>
         <li><strong>Secrets and switches</strong> in <code>.env</code>: provider keys, LiteLLM master + six virtual keys, guardrails and runtime service tokens, two OPA bearer tokens, Postgres password, image tags, thresholds, <code>DEBUG_PANEL</code>, <code>DEBUG_TRACE_CONTENT</code>.</li>
         <li><strong>Policy as files</strong>: <code>policy/authz.rego</code> + tests, <code>policy/data/roles.json</code> (static), <code>policy/data/registry.json</code> (generated by seed from the <code>ai_registry</code> table and pushed to OPA over its data API).</li>
         <li><strong>Seed job</strong> (<code>make seed</code>): schema + fixtures → LiteLLM virtual keys with budgets → embed 18 docs via the gateway into <code>kb</code> → registry → OPA.</li>
@@ -410,13 +410,13 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
   </div>
   <figure>
     <div class="fig-wrap">
-    <svg viewBox="0 0 1000 250" role="img" aria-label="Six stages left to right: identity, policy model stage, input guardrails, chat and tool loop, output guardrails, restore and envelope. The tool loop contains a nested sub-loop: PIP, OPA tool stage, raisin-api. Each stage lists what can stop the request.">
+    <svg viewBox="0 0 1000 250" role="img" aria-label="Six stages left to right: identity, policy model stage, input guardrails, chat and tool loop, output guardrails, restore and envelope. The tool loop contains a nested sub-loop: PIP, OPA tool stage, fundraising-api. Each stage lists what can stop the request.">
       <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
       <!-- stages -->
       <rect class="box-blue" x="10" y="40" width="140" height="78" rx="4"/>
       <text class="lbl-b" x="80" y="62" text-anchor="middle">1 · Identity</text>
       <text class="lbl-s" x="80" y="80" text-anchor="middle">JWT verified twice</text>
-      <text class="lbl-s" x="80" y="94" text-anchor="middle">raisin-api, runtime</text>
+      <text class="lbl-s" x="80" y="94" text-anchor="middle">fundraising-api, runtime</text>
       <text class="lbl-m" x="80" y="110" text-anchor="middle">hops 1–4</text>
 
       <rect class="box-amber" x="176" y="40" width="140" height="78" rx="4"/>
@@ -465,7 +465,7 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
       <text class="lbl" x="694" y="194" text-anchor="middle">OPA tool stage</text>
       <text class="lbl-s" x="694" y="208" text-anchor="middle">ABAC on tenant</text>
       <rect class="box-blue" x="768" y="176" width="108" height="40" rx="4"/>
-      <text class="lbl" x="822" y="194" text-anchor="middle">raisin-api /api</text>
+      <text class="lbl" x="822" y="194" text-anchor="middle">fundraising-api /api</text>
       <text class="lbl-s" x="822" y="208" text-anchor="middle">re-check + SQL filter</text>
       <path class="ln" d="M620,196 L644,196" marker-end="url(#ah2)"/>
       <path class="ln" d="M744,196 L768,196" marker-end="url(#ah2)"/>
@@ -486,9 +486,9 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
   <div class="tbl"><table>
     <thead><tr><th>#</th><th>Hop</th><th>Where</th><th>Span</th><th>What it does and why</th><th>Stops here as</th></tr></thead>
     <tbody>
-      <tr><td class="n">1</td><td>Client posts <code>{question, model?, temperature?}</code> with Bearer JWT</td><td class="k">raisin-api</td><td class="mono">POST /assistant</td><td>Entry point of the application API. The question never goes anywhere without a token.</td><td>401</td></tr>
-      <tr><td class="n">2</td><td>JWT verified locally (RS256, <code>aud=aicp</code>, <code>iss=raisin-api</code>)</td><td class="k">raisin-api</td><td class="mono">enduser.id, tenant_id, role</td><td>Claims are stamped on the span so every trace is searchable by user and tenant.</td><td>401</td></tr>
-      <tr><td class="n">3</td><td>Forward to runtime with the same <code>Authorization</code> header</td><td class="k">raisin-api → agent-runtime</td><td class="mono">POST /run</td><td>httpx instrumentation injects <code>traceparent</code>, so the runtime's spans nest under the API's.</td><td>5xx</td></tr>
+      <tr><td class="n">1</td><td>Client posts <code>{question, model?, temperature?}</code> with Bearer JWT</td><td class="k">fundraising-api</td><td class="mono">POST /assistant</td><td>Entry point of the application API. The question never goes anywhere without a token.</td><td>401</td></tr>
+      <tr><td class="n">2</td><td>JWT verified locally (RS256, <code>aud=aicp</code>, <code>iss=fundraising-api</code>)</td><td class="k">fundraising-api</td><td class="mono">enduser.id, tenant_id, role</td><td>Claims are stamped on the span so every trace is searchable by user and tenant.</td><td>401</td></tr>
+      <tr><td class="n">3</td><td>Forward to runtime with the same <code>Authorization</code> header</td><td class="k">fundraising-api → agent-runtime</td><td class="mono">POST /run</td><td>httpx instrumentation injects <code>traceparent</code>, so the runtime's spans nest under the API's.</td><td>5xx</td></tr>
       <tr><td class="n">4</td><td>JWT verified again against JWKS (<code>/.well-known/jwks.json</code>)</td><td class="k">agent-runtime</td><td class="mono">assistant.run</td><td>Independent verification. A rotated key with a reused <code>kid</code> triggers one JWKS refresh and retry. Root span of the AI path, <code>gen_ai.prompt.name=assistant-system-v1</code>.</td><td>401</td></tr>
       <tr><td class="n">5</td><td><strong>Model stage.</strong> <code>{stage: model, subject, model, prompt}</code> to OPA</td><td class="k">agent-runtime → opa</td><td class="mono">policy.decide (stage=model)</td><td>Asks: may this role use this model with this prompt? Requested model falls back to the role's first model. 2 s timeout, synthetic deny on error.</td><td>403 <code>policy_deny</code>: model_not_in_role, unapproved_model, unapproved_prompt, unknown_role, unavailable</td></tr>
       <tr><td class="n">6</td><td>OPA returns <code>model</code>, <code>allowed_tools</code>, <code>withheld_tools</code>, <code>retrieval_filter</code>, <code>registry_revision</code></td><td class="k">opa</td><td class="mono">policy.tools.allowed / withheld</td><td>The tool list is the intersection of the role's tools and the registry's approved tools. Withheld tools are recorded so the trace shows what the model was <em>not</em> offered.</td><td></td></tr>
@@ -501,7 +501,7 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
       <tr><td class="n">13</td><td><strong>Output guardrail (a).</strong> Presidio on the draft answer</td><td class="k">agent-runtime → presidio-analyzer</td><td class="mono">guardrail.output → guardrail.presidio.analyze</td><td>Any EMAIL / PHONE / CC that is not one of this request's placeholders is by definition data the model should not have produced. PERSON is only flagged (names appear legitimately in stories).</td><td>soft: 200 with REFUSAL, <code>reason=pii_in_output</code></td></tr>
       <tr><td class="n">14</td><td><strong>Output guardrail (b).</strong> <code>POST /v1/scan/output {text, prompt}</code></td><td class="k">agent-runtime → guardrails → nemo, litellm</td><td class="mono">guardrail.scan.output → guardrail.nemo, guardrail.moderation</td><td>NeMo <code>self check output</code> sees prompt + response; <code>omni-moderation-latest</code> at 0.5; regex output rules (secrets, exfil URLs, hidden unicode) if enabled.</td><td>soft: 200 with REFUSAL, <code>reason=nemo:self check output</code> or <code>moderation:&lt;category&gt;</code></td></tr>
       <tr><td class="n">15</td><td><strong>Restore.</strong> Finance / Participant: placeholders restored. Donor: never restored, <code>presidio-anonymizer</code> masks PERSON</td><td class="k">agent-runtime (→ presidio-anonymizer)</td><td class="mono">guardrail.presidio.anonymize</td><td>The anonymizer is called for Donors even when there is nothing to mask, so its outage is detected.</td><td>400 <code>guardrail_unavailable</code> (Donor path)</td></tr>
-      <tr><td class="n">16</td><td>Envelope</td><td class="k">agent-runtime → raisin-api → client</td><td class="mono">X-Trace-Id header</td><td><code>{answer, trace_id}</code> always; <code>policy</code>, <code>tool_calls</code>, <code>guardrails</code> only with <code>DEBUG_PANEL=on</code>. Scores and rail names are an oracle for tuning attacks and stay in the trace.</td><td>200</td></tr>
+      <tr><td class="n">16</td><td>Envelope</td><td class="k">agent-runtime → fundraising-api → client</td><td class="mono">X-Trace-Id header</td><td><code>{answer, trace_id}</code> always; <code>policy</code>, <code>tool_calls</code>, <code>guardrails</code> only with <code>DEBUG_PANEL=on</code>. Scores and rail names are an oracle for tuning attacks and stay in the trace.</td><td>200</td></tr>
     </tbody>
   </table></div>
 </section>
@@ -511,11 +511,11 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
   <div class="eyebrow"><b>07</b> Tool call authorization</div>
   <div class="head">
     <h2>Two independent layers must both be wrong for a cross-tenant read</h2>
-    <p class="lead">The runtime holds no database credentials for the system of record. Every tool is a narrow HTTP call to <code>raisin-api</code> with two credentials: the caller's JWT (who is asking) and the runtime's <code>X-Service-Token</code> (proof the call came through the control plane).</p>
+    <p class="lead">The runtime holds no database credentials for the system of record. Every tool is a narrow HTTP call to <code>fundraising-api</code> with two credentials: the caller's JWT (who is asking) and the runtime's <code>X-Service-Token</code> (proof the call came through the control plane).</p>
   </div>
   <figure>
     <div class="fig-wrap">
-    <svg viewBox="0 0 1000 300" role="img" aria-label="By-id tool call: the model requests get_donation 873928. Step 1 the runtime asks the PIP for the owning tenant. Step 2 OPA decides with resource.tenant_id. Step 3 raisin-api checks service token, JWT role against roles.json, and filters by tenant in SQL. Denies at any step collapse to not_found for the model but are red spans and SIEM rows.">
+    <svg viewBox="0 0 1000 300" role="img" aria-label="By-id tool call: the model requests get_donation 873928. Step 1 the runtime asks the PIP for the owning tenant. Step 2 OPA decides with resource.tenant_id. Step 3 fundraising-api checks service token, JWT role against roles.json, and filters by tenant in SQL. Denies at any step collapse to not_found for the model but are red spans and SIEM rows.">
       <defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
       <marker id="ah3r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--red)"/></marker></defs>
       <rect class="box" x="10" y="30" width="150" height="60" rx="4"/>
@@ -539,7 +539,7 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
       <text class="lbl-s" x="690" y="82" text-anchor="middle">tool in role ∧ tool approved</text>
 
       <rect class="box-blue" x="820" y="30" width="170" height="60" rx="4"/>
-      <text class="lbl-b" x="905" y="50" text-anchor="middle">3 · raisin-api /api</text>
+      <text class="lbl-b" x="905" y="50" text-anchor="middle">3 · fundraising-api /api</text>
       <text class="lbl-s" x="905" y="66" text-anchor="middle">service token · JWT role (roles.json)</text>
       <text class="lbl-s" x="905" y="82" text-anchor="middle">WHERE tenant_id = JWT tenant</text>
 
@@ -664,7 +664,7 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
     </div>
     <div>
       <h3><code>POST /donate</code> · public, never AI</h3>
-      <p>No JWT (public form). <code>raisin-api</code> validates the tenant exists, upserts the donor without overwriting existing contact fields, takes the donation id from a database sequence (<code>extra=forbid</code> rejects a client-supplied id with 422), inserts a pending donation, calls <code>payment-gateway /charge</code> with <code>{amount, currency, payment_token}</code> only, records the transaction and updates the status.</p>
+      <p>No JWT (public form). <code>fundraising-api</code> validates the tenant exists, upserts the donor without overwriting existing contact fields, takes the donation id from a database sequence (<code>extra=forbid</code> rejects a client-supplied id with 422), inserts a pending donation, calls <code>payment-gateway /charge</code> with <code>{amount, currency, payment_token}</code> only, records the transaction and updates the status.</p>
       <div class="callout red"><strong>PCI-scope property, asserted on real traces.</strong><p><code>make test</code> checks that at least one trace touches <code>payment-gateway</code>, at least one has a <code>gen_ai.*</code> attribute, and none has both. It also checks the canary donor's email and phone (used in scenario 0) appear in zero span attributes or events anywhere.</p></div>
       <h3>Roles and what each may reach</h3>
       <div class="tbl"><table>
@@ -689,11 +689,11 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
   <div class="tbl"><table>
     <thead><tr><th>#</th><th>Failure</th><th>Where it stops</th><th>Caller sees</th><th>Model saw</th><th>Trace / SIEM</th></tr></thead>
     <tbody>
-      <tr><td class="n">F1</td><td>No or invalid JWT</td><td>raisin-api, and runtime independently</td><td><span class="pill p-red">401</span></td><td>nothing</td><td><code>POST /assistant</code> 401, no <code>assistant.run</code></td></tr>
+      <tr><td class="n">F1</td><td>No or invalid JWT</td><td>fundraising-api, and runtime independently</td><td><span class="pill p-red">401</span></td><td>nothing</td><td><code>POST /assistant</code> 401, no <code>assistant.run</code></td></tr>
       <tr><td class="n">F2</td><td>Model not allowed for the role</td><td>OPA model stage</td><td><span class="pill p-red">403</span> policy_deny model_not_in_role</td><td>nothing</td><td><code>policy.decide</code> deny, event <code>policy.deny</code>, SIEM row</td></tr>
       <tr><td class="n">F3</td><td>Prompt injection in the question</td><td>guardrails input scan</td><td><span class="pill p-red">400</span> guardrail_block input</td><td>nothing</td><td><code>guardrail.input</code> block, nemo + classifier hits, SIEM row</td></tr>
-      <tr><td class="n">F4</td><td>Direct call to <code>/api/*</code> without service token</td><td>raisin-api authorize</td><td><span class="pill p-red">403</span></td><td>n/a</td><td><code>authz.result=deny_no_service_token</code></td></tr>
-      <tr><td class="n">F5</td><td>Donor JWT on a finance route, with service token</td><td>raisin-api authorize</td><td><span class="pill p-red">403</span></td><td>n/a</td><td><code>policy.result=deny tool_not_in_role</code>, SIEM row</td></tr>
+      <tr><td class="n">F4</td><td>Direct call to <code>/api/*</code> without service token</td><td>fundraising-api authorize</td><td><span class="pill p-red">403</span></td><td>n/a</td><td><code>authz.result=deny_no_service_token</code></td></tr>
+      <tr><td class="n">F5</td><td>Donor JWT on a finance route, with service token</td><td>fundraising-api authorize</td><td><span class="pill p-red">403</span></td><td>n/a</td><td><code>policy.result=deny tool_not_in_role</code>, SIEM row</td></tr>
       <tr><td class="n">F6</td><td>Finance B asks for tenant A's donation</td><td>OPA tool stage (ABAC)</td><td><span class="pill p-amber">200</span> "not found for your charity"</td><td><code>{"error":"not_found"}</code></td><td><code>execute_tool</code> denied tenant_mismatch, <code>policy.decide</code> deny, SIEM row</td></tr>
       <tr><td class="n">F7</td><td>Client supplies its own donation id on <code>/donate</code></td><td>pydantic extra=forbid</td><td><span class="pill p-red">422</span></td><td>n/a</td><td><code>POST /donate</code> 422</td></tr>
       <tr><td class="n">F8</td><td>Model output contains a secret or raw PII</td><td>output scan / Presidio</td><td><span class="pill p-amber">200</span> with refusal text</td><td>its own draft</td><td><code>guardrail.output</code> block, SIEM row</td></tr>
@@ -720,7 +720,7 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
       <defs><marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
       <rect class="box" x="10" y="60" width="170" height="120" rx="4"/>
       <text class="lbl-b" x="95" y="82" text-anchor="middle">every service</text>
-      <text class="lbl-s" x="95" y="100" text-anchor="middle">raisin-api · agent-runtime</text>
+      <text class="lbl-s" x="95" y="100" text-anchor="middle">fundraising-api · agent-runtime</text>
       <text class="lbl-s" x="95" y="114" text-anchor="middle">guardrails · nemo · litellm</text>
       <text class="lbl-s" x="95" y="128" text-anchor="middle">opa · payment-gateway · seed</text>
       <text class="lbl-m" x="95" y="150" text-anchor="middle">OTLP 4317 / 4318</text>
@@ -856,19 +856,19 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
   <div class="tbl"><table>
     <thead><tr><th>Today</th><th>Where</th><th>Production source</th><th>Why it matters</th></tr></thead>
     <tbody>
-      <tr><td><code>GATEWAY_KEYS</code> dict: <code>(tenant, role) → env var</code>, six entries</td><td class="mono">agent-runtime/config.py</td><td>Table <code>tenant_gateway_keys(tenant_id, role, key_alias, secret_ref)</code> in the raisin DB; key value fetched from AWS Secrets Manager by reference; created on tenant onboarding, rotated on schedule. Tenant-c had to be added by hand in three places (config, compose, seed); that is the bug this fixes.</td><td>Adding a tenant is a row insert plus key provisioning, not a code deploy and container recreate.</td></tr>
+      <tr><td><code>GATEWAY_KEYS</code> dict: <code>(tenant, role) → env var</code>, six entries</td><td class="mono">agent-runtime/config.py</td><td>Table <code>tenant_gateway_keys(tenant_id, role, key_alias, secret_ref)</code> in the fundraising DB; key value fetched from AWS Secrets Manager by reference; created on tenant onboarding, rotated on schedule. Tenant-c had to be added by hand in three places (config, compose, seed); that is the bug this fixes.</td><td>Adding a tenant is a row insert plus key provisioning, not a code deploy and container recreate.</td></tr>
       <tr><td><code>PROMPTS</code> dict: <code>assistant-system-v1</code>, <code>story-generator-v1</code> text</td><td class="mono">agent-runtime/config.py</td><td>Prompt registry table (<code>ai_registry</code> already holds name, owner, risk tier, approval; add <code>text</code>, <code>version</code>, <code>tenant_id|null</code>). Runtime loads by name and pins the version on the span. Closes finding F9 (per-tenant approval).</td><td>Prompt change becomes a reviewed registry revision, visible in <code>policy.registry_revision</code>, not a redeploy.</td></tr>
-      <tr><td><code>roles.json</code>: role → models, tools, classifications (static file, bind-mounted to OPA and raisin-api)</td><td class="mono">policy/data/roles.json</td><td>Tables <code>roles</code>, <code>role_models</code>, <code>role_tools</code>, <code>role_classifications</code>; exported to OPA as part of the same signed bundle as the registry; raisin-api reads the same bundle or the DB.</td><td>Both enforcement layers stay in sync by construction; role edits are audited rows.</td></tr>
+      <tr><td><code>roles.json</code>: role → models, tools, classifications (static file, bind-mounted to OPA and fundraising-api)</td><td class="mono">policy/data/roles.json</td><td>Tables <code>roles</code>, <code>role_models</code>, <code>role_tools</code>, <code>role_classifications</code>; exported to OPA as part of the same signed bundle as the registry; fundraising-api reads the same bundle or the DB.</td><td>Both enforcement layers stay in sync by construction; role edits are audited rows.</td></tr>
       <tr><td><code>registry.json</code> generated by <code>seed registry</code> and pushed by hand over OPA's data API</td><td class="mono">seed.py, policy/data/registry.json</td><td>Keep <code>ai_registry</code> as the source, but publish via an OPA bundle server (S3 + signed bundle, OPA polls) or an event on row change. Revision hash stays on every decision.</td><td>No manual push step; OPA restarts pick up the current bundle; rollback is a bundle version.</td></tr>
-      <tr><td>Tenants, users with roles, donors, donations, transactions in <code>fixtures.py</code></td><td class="mono">seed/fixtures.py</td><td>The real raisin database. Tenants and donation data already exist there; roles come from the IdP (next group).</td><td>Seed becomes schema migration only.</td></tr>
+      <tr><td>Tenants, users with roles, donors, donations, transactions in <code>fixtures.py</code></td><td class="mono">seed/fixtures.py</td><td>The real fundraising database. Tenants and donation data already exist there; roles come from the IdP (next group).</td><td>Seed becomes schema migration only.</td></tr>
       <tr><td>LiteLLM virtual key budgets (10 USD/day, 5 USD/day) and model lists per key</td><td class="mono">seed/fixtures.py KEYS, KEY_MODELS</td><td><code>tenant_plans(tenant_id, max_budget, budget_duration, models[])</code>; a provisioning job calls LiteLLM <code>/key/generate</code> and <code>/key/update</code> from it.</td><td>Budget is a commercial setting owned by the business, not a fixture.</td></tr>
       <tr><td>Model routing in <code>litellm-config.yaml</code> (model names, provider, api base)</td><td class="mono">gateway/litellm-config.yaml</td><td>LiteLLM <code>store_model_in_db: true</code> with model rows managed through its admin API, sourced from the same registry (approved models only).</td><td>Provider swap (OpenAI → Bedrock) is a registry change, and the registry knows which models exist.</td></tr>
       <tr><td>KB documents: folder of markdown files, tenant and classification in the <code>DOCS</code> dict</td><td class="mono">seed/fixtures.py DOCS, seed/docs/</td><td>Ingestion pipeline from the tenant CMS or SharePoint: <code>kb_documents(tenant_id, classification, source_uri, version, indexed_at)</code>; chunks carry those columns; re-index on change.</td><td>Classification is metadata attached at the source, so the retrieval filter has something true to filter on.</td></tr>
       <tr><td>Guardrail thresholds: Presidio 0.3 + per-entity {.6,.6,.4,.6}, injection 0.9, moderation 0.5, REFUSAL text</td><td class="mono">agent-runtime/guardrails.py, guardrails/app.py, .env</td><td><code>guardrail_profiles(profile_id, tenant_id|null, stage, entity_thresholds, injection_threshold, moderation_threshold, refusal_text)</code>; profile id recorded on the guardrail span.</td><td>Tuning per tenant and per stage without a deploy; the trace says which profile judged the request.</td></tr>
-      <tr><td>Runtime limits: <code>POLICY_TIMEOUT_S=2</code>, <code>GUARDRAIL_TIMEOUT_S=30</code>, <code>MAX_TOOL_ROUNDS=4</code>, <code>max_tokens=600</code>, story temperature 0.7, RAG top 4, list limit 50, JWT lifetime 900 s</td><td class="mono">config.py, app.py, llm.py, tools.py, raisin-api/app.py</td><td>SSM Parameter Store (or a <code>runtime_settings</code> table) read at startup and on SIGHUP; per-prompt overrides in the prompt registry row.</td><td>Operational knobs change with an audit trail; no rebuild for a timeout.</td></tr>
+      <tr><td>Runtime limits: <code>POLICY_TIMEOUT_S=2</code>, <code>GUARDRAIL_TIMEOUT_S=30</code>, <code>MAX_TOOL_ROUNDS=4</code>, <code>max_tokens=600</code>, story temperature 0.7, RAG top 4, list limit 50, JWT lifetime 900 s</td><td class="mono">config.py, app.py, llm.py, tools.py, fundraising-api/app.py</td><td>SSM Parameter Store (or a <code>runtime_settings</code> table) read at startup and on SIGHUP; per-prompt overrides in the prompt registry row.</td><td>Operational knobs change with an audit trail; no rebuild for a timeout.</td></tr>
       <tr><td>NeMo rails config and judge prompts as bind-mounted YAML</td><td class="mono">nemo-guardrails/config/aicp/</td><td>Versioned config artifact (S3 object with version id) baked into the task definition; version recorded on <code>guardrail.nemo</code> spans.</td><td>A rail prompt change is a release with a version, not an edit on a mount.</td></tr>
-      <tr><td><code>DECLINE_CATEGORY</code> map (51, 05, 14, 54)</td><td class="mono">raisin-api/app.py</td><td>Reference table from the payment processor's code list.</td><td>Complete list, not the four the scenarios needed.</td></tr>
-      <tr><td>Payment gateway stub (<code>tok_decline_*</code> declines)</td><td class="mono">payment-gateway/app.py</td><td>The real processor integration that Raisin already runs. The stub only exists to make the PCI boundary visible in traces.</td><td>Nothing to build; keep the trace assertion.</td></tr>
+      <tr><td><code>DECLINE_CATEGORY</code> map (51, 05, 14, 54)</td><td class="mono">fundraising-api/app.py</td><td>Reference table from the payment processor's code list.</td><td>Complete list, not the four the scenarios needed.</td></tr>
+      <tr><td>Payment gateway stub (<code>tok_decline_*</code> declines)</td><td class="mono">payment-gateway/app.py</td><td>The real processor integration that Fundraising already runs. The stub only exists to make the PCI boundary visible in traces.</td><td>Nothing to build; keep the trace assertion.</td></tr>
     </tbody>
   </table></div>
 
@@ -878,8 +878,8 @@ make test-fail-closed    # stop each control, assert refusal</code></pre>
     <tbody>
       <tr><td><code>/auth/token</code> issues RS256 JWTs from a <code>users</code> table; signing key generated at boot unless <code>JWT_PRIVATE_KEY_PEM</code> set; <code>/auth/users</code> picker for the console (F10)</td><td>Entra ID (OIDC). Runtime already verifies via JWKS, so this is a URL, issuer and audience change. <code>tenant_id</code> and <code>role</code> become app-role claims or come from a claims-mapping lookup on <code>sub</code>. Remove <code>/auth/*</code> routes and the picker.</td></tr>
       <tr><td>Shared secrets in <code>.env</code>: provider keys, LiteLLM master + virtual keys, <code>RUNTIME_SERVICE_TOKEN</code>, <code>GUARDRAILS_AUTH_TOKEN</code>, two OPA tokens, Postgres password; values equal <code>.env.example</code> (F11)</td><td>AWS Secrets Manager injected into ECS task definitions; rotation for provider keys and LiteLLM keys; unique per environment; no secret in compose or repo.</td></tr>
-      <tr><td>Service-to-service auth by static bearer/header tokens; guardrails auth fails open when the token is empty (F7)</td><td>mTLS or IAM-signed requests inside the VPC (service connect / App Mesh); runtime→raisin-api service token replaced by task-role identity; guardrails requires auth unconditionally.</td></tr>
-      <tr><td>One Postgres role <code>poc</code> owns <code>litellm</code>, <code>raisin</code>, <code>kb</code> (F4)</td><td>Separate RDS instances or at least separate roles per database; row-level security by <code>tenant_id</code> on raisin and kb tables with the tenant set per connection from the JWT; runtime gets read-only on <code>kb</code> only.</td></tr>
+      <tr><td>Service-to-service auth by static bearer/header tokens; guardrails auth fails open when the token is empty (F7)</td><td>mTLS or IAM-signed requests inside the VPC (service connect / App Mesh); runtime→fundraising-api service token replaced by task-role identity; guardrails requires auth unconditionally.</td></tr>
+      <tr><td>One Postgres role <code>poc</code> owns <code>litellm</code>, <code>fundraising</code>, <code>kb</code> (F4)</td><td>Separate RDS instances or at least separate roles per database; row-level security by <code>tenant_id</code> on fundraising and kb tables with the tenant set per connection from the JWT; runtime gets read-only on <code>kb</code> only.</td></tr>
     </tbody>
   </table></div>
 

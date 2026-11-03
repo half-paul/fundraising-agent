@@ -247,7 +247,7 @@ def _require_role(claims: dict, role: str):
 def list_approvals(authorization: str | None = Header(default=None)):
     """Pending approval queue, scoped to the caller's own tenant. Finance only (the only business role currently modeled) --
     a direct role check, not an OPA call: this lists a queue and executes nothing. Same "second, independent layer"
-    pattern raisin-api's own /api/* routes use (see docs/containers/opa.md); the OPA call that actually matters is
+    pattern fundraising-api's own /api/* routes use (see docs/containers/opa.md); the OPA call that actually matters is
     approval_execute, below, right before anything runs."""
     claims = verify_bearer(authorization)
     _require_role(claims, "Finance")

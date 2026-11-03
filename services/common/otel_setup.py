@@ -1,7 +1,7 @@
 """OTel bootstrap shared by every Python service (copied into each image at build time).
 
 Hand-rolled spans only. httpx instrumentation is enabled so `traceparent` is injected into
-outbound calls (OpenAI SDK -> LiteLLM, runtime -> OPA / guardrails / raisin-api);
+outbound calls (OpenAI SDK -> LiteLLM, runtime -> OPA / guardrails / fundraising-api);
 header and body capture stay off (PII discipline).
 """
 import os

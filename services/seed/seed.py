@@ -22,7 +22,7 @@ from otel_setup import flush, init_tracing
 
 tracer = init_tracing("seed")
 
-RAISIN_DB = os.environ["RAISIN_DATABASE_URL"]
+FUNDRAISING_DB = os.environ["FUNDRAISING_DATABASE_URL"]
 KB_DB = os.environ["KB_DATABASE_URL"]
 LITELLM = os.environ["LITELLM_BASE_URL"].rstrip("/")
 MASTER = os.environ["LITELLM_MASTER_KEY"]
@@ -39,7 +39,7 @@ def _pg(url):
 
 def schema():
     with tracer.start_as_current_span("seed.schema"):
-        with _pg(RAISIN_DB) as c:
+        with _pg(FUNDRAISING_DB) as c:
             c.execute(pathlib.Path("schema.sql").read_text())
             for t in F.TENANTS:
                 c.execute("INSERT INTO tenants VALUES (%s,%s) ON CONFLICT (id) DO NOTHING", t)
@@ -150,7 +150,7 @@ def index():
 
 def registry():
     with tracer.start_as_current_span("seed.registry") as span:
-        with _pg(RAISIN_DB) as c:
+        with _pg(FUNDRAISING_DB) as c:
             rows = c.execute("SELECT kind, name, owner, risk_tier, action_risk, approved, version FROM ai_registry ORDER BY kind, name").fetchall()
         reg = {"models": {}, "tools": {}, "prompts": {}}
         for kind, name, owner, tier, action_risk, approved, version in rows:
@@ -170,14 +170,14 @@ def registry():
 
 def flip(name: str, approved: str):
     val = approved.lower() in ("true", "1", "yes")
-    with _pg(RAISIN_DB) as c:
+    with _pg(FUNDRAISING_DB) as c:
         n = c.execute("UPDATE ai_registry SET approved=%s WHERE name=%s", (val, name)).rowcount
     print(f"seed.flip {name} approved={val} rows={n}")
     registry()
 
 
 def reset():
-    with _pg(RAISIN_DB) as c:
+    with _pg(FUNDRAISING_DB) as c:
         for kind, name, owner, tier, action_risk, approved in F.REGISTRY:
             c.execute("UPDATE ai_registry SET approved=%s WHERE kind=%s AND name=%s", (approved, kind, name))
     print("seed.reset ok")

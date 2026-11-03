@@ -5,8 +5,8 @@ import os
 import psycopg
 from opentelemetry import trace
 
-tracer = trace.get_tracer("raisin-api.db")
-DB_URL = os.environ["RAISIN_DATABASE_URL"]
+tracer = trace.get_tracer("fundraising-api.db")
+DB_URL = os.environ["FUNDRAISING_DATABASE_URL"]
 
 
 def query(sql: str, params=(), one: bool = False, table: str = ""):

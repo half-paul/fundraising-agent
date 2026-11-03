@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Raisin Agent Data Flow</title>
+<title>Fundraising Agent Data Flow</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: one wide engineering drawing; lanes left→right by hop; telemetry bus collects every service at the bottom. */
@@ -133,7 +133,7 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
 
 <div class="wrap">
 <header>
-  <h1>Raisin agent: containers and data flow</h1>
+  <h1>Fundraising agent: containers and data flow</h1>
   <p>Every box is a service in <code>docker-compose.yml</code>. Moving dashes travel in the direction the data goes; green dashes are the response coming back. Pick a scenario to show only the containers it touches, toggle flows, click a box for its purpose and connections.</p>
 </header>
 
@@ -190,7 +190,7 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
   </dl>
   <a class="bl" id="b-doc" href="#" target="_blank" rel="noopener">Container page</a>
 </div>
-<svg id="dia" viewBox="0 0 1600 970" role="img" aria-label="Containers of the raisin-agent system with arrows showing which service calls which, in the direction data flows: browser to raisin-api to agent-runtime, which calls OPA, guardrails, Presidio, LiteLLM and Postgres; LiteLLM calls providers; every service exports traces to the OpenTelemetry collector, which fans out to Jaeger, Phoenix and a SIEM file.">
+<svg id="dia" viewBox="0 0 1600 970" role="img" aria-label="Containers of the fundraising-agent system with arrows showing which service calls which, in the direction data flows: browser to fundraising-api to agent-runtime, which calls OPA, guardrails, Presidio, LiteLLM and Postgres; LiteLLM calls providers; every service exports traces to the OpenTelemetry collector, which fans out to Jaeger, Phoenix and a SIEM file.">
 <defs>
   <marker id="head-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--flow)"/></marker>
   <marker id="head-ctrl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ctrl)"/></marker>
@@ -209,7 +209,7 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
 <text class="lane-t" x="1142" y="30">MODEL GATEWAY + PROVIDERS</text>
 <rect class="lane lane-obs" x="10" y="670" width="1570" height="290" rx="10"/>
 <text class="lane-t" x="22" y="690">OBSERVABILITY · ONE TRACE PER REQUEST</text>
-<g class="edge tele" data-from="raisin" data-to="otel" data-flows="tele" data-dir="req" data-roles="finance donor participant donate">
+<g class="edge tele" data-from="fundraising" data-to="otel" data-flows="tele" data-dir="req" data-roles="finance donor participant donate">
 <path class="base" d="M 290.0 273.4 L 270.0 273.4 L 270.0 650.0"/>
 <path class="wave" d="M 290.0 273.4 L 270.0 273.4 L 270.0 650.0"/>
 </g>
@@ -251,43 +251,43 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
 <rect class="lbl-bg" x="665.0" y="672" width="150" height="18" rx="4"/>
 <text class="lbl" x="671.0" y="685">OTLP spans :4317 / :4318</text>
 </g>
-<g class="edge flow" data-from="user" data-to="raisin" data-flows="chat donate" data-dir="req" data-roles="finance donor participant donate">
+<g class="edge flow" data-from="user" data-to="fundraising" data-flows="chat donate" data-dir="req" data-roles="finance donor participant donate">
 <path class="base" d="M 190.7 250.9 L 290.7 234.1"/>
 <path class="wave arrow" d="M 190.7 250.9 L 290.7 234.1"/>
 </g>
-<g class="edge resp" data-from="raisin" data-to="user" data-flows="chat donate" data-dir="resp" data-roles="finance donor participant donate">
+<g class="edge resp" data-from="fundraising" data-to="user" data-flows="chat donate" data-dir="resp" data-roles="finance donor participant donate">
 <path class="base" d="M 289.3 226.3 L 189.3 243.1"/>
 <path class="wave arrow" d="M 289.3 226.3 L 189.3 243.1"/>
 </g>
-<g class="edge flow" data-from="raisin" data-to="runtime" data-flows="chat" data-dir="req" data-roles="finance donor participant">
+<g class="edge flow" data-from="fundraising" data-to="runtime" data-flows="chat" data-dir="req" data-roles="finance donor participant">
 <path class="base" d="M 469.9 230.6 L 569.9 233.0"/>
 <path class="wave arrow" d="M 469.9 230.6 L 569.9 233.0"/>
 </g>
-<g class="edge resp" data-from="runtime" data-to="raisin" data-flows="chat" data-dir="resp" data-roles="finance donor participant">
+<g class="edge resp" data-from="runtime" data-to="fundraising" data-flows="chat" data-dir="resp" data-roles="finance donor participant">
 <path class="base" d="M 570.1 225.0 L 470.1 222.6"/>
 <path class="wave arrow" d="M 570.1 225.0 L 470.1 222.6"/>
 </g>
-<g class="edge flow" data-from="runtime" data-to="raisin" data-flows="tools" data-dir="req" data-roles="finance donor">
+<g class="edge flow" data-from="runtime" data-to="fundraising" data-flows="tools" data-dir="req" data-roles="finance donor">
 <path class="base" d="M 570.3 265.0 L 470.3 258.6"/>
 <path class="wave arrow" d="M 570.3 265.0 L 470.3 258.6"/>
 </g>
-<g class="edge resp" data-from="raisin" data-to="runtime" data-flows="tools" data-dir="resp" data-roles="finance donor">
+<g class="edge resp" data-from="fundraising" data-to="runtime" data-flows="tools" data-dir="resp" data-roles="finance donor">
 <path class="base" d="M 469.7 266.6 L 569.7 273.0"/>
 <path class="wave arrow" d="M 469.7 266.6 L 569.7 273.0"/>
 </g>
-<g class="edge flow" data-from="raisin" data-to="paygw" data-flows="donate" data-dir="req" data-roles="donate">
+<g class="edge flow" data-from="fundraising" data-to="paygw" data-flows="donate" data-dir="req" data-roles="donate">
 <path class="base" d="M 376.0 277.0 L 376.0 340.0"/>
 <path class="wave arrow" d="M 376.0 277.0 L 376.0 340.0"/>
 </g>
-<g class="edge resp" data-from="paygw" data-to="raisin" data-flows="donate" data-dir="resp" data-roles="donate">
+<g class="edge resp" data-from="paygw" data-to="fundraising" data-flows="donate" data-dir="resp" data-roles="donate">
 <path class="base" d="M 384.0 340.0 L 384.0 277.0"/>
 <path class="wave arrow" d="M 384.0 340.0 L 384.0 277.0"/>
 </g>
-<g class="edge flow" data-from="raisin" data-to="postgres" data-flows="donate tools" data-dir="req" data-roles="finance donor donate">
+<g class="edge flow" data-from="fundraising" data-to="postgres" data-flows="donate tools" data-dir="req" data-roles="finance donor donate">
 <path class="base" d="M 470.0 277.4 L 516.0 277.4 L 516.0 498.0 L 570.0 498.0"/>
 <path class="wave arrow" d="M 470.0 277.4 L 516.0 277.4 L 516.0 498.0 L 570.0 498.0"/>
 </g>
-<g class="edge resp" data-from="postgres" data-to="raisin" data-flows="donate tools" data-dir="resp" data-roles="finance donor donate">
+<g class="edge resp" data-from="postgres" data-to="fundraising" data-flows="donate tools" data-dir="resp" data-roles="finance donor donate">
 <path class="base" d="M 570.0 490.0 L 524.0 490.0 L 524.0 269.4 L 470.0 269.4"/>
 <path class="wave arrow" d="M 570.0 490.0 L 524.0 490.0 L 524.0 269.4 L 470.0 269.4"/>
 </g>
@@ -411,16 +411,16 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
 <path class="base" d="M 760.0 797.6 L 860.0 888.0"/>
 <path class="wave arrow" d="M 760.0 797.6 L 860.0 888.0"/>
 </g>
-<g class="edge lblg flow" data-from="user" data-to="raisin" data-flows="chat donate" data-dir="req" data-roles="finance donor participant donate"><rect class="lbl-bg" x="193.1" y="219.5" width="95.2" height="18" rx="4"/><text class="lbl" x="240.7" y="232.5" text-anchor="middle">JWT + request</text></g>
-<g class="edge lblg resp" data-from="raisin" data-to="user" data-flows="chat donate" data-dir="resp" data-roles="finance donor participant donate"><rect class="lbl-bg" x="214.1" y="239.7" width="50.4" height="18" rx="4"/><text class="lbl" x="239.3" y="252.7" text-anchor="middle">answer</text></g>
-<g class="edge lblg flow" data-from="raisin" data-to="runtime" data-flows="chat" data-dir="req" data-roles="finance donor participant"><rect class="lbl-bg" x="453.1" y="188.8" width="133.6" height="18" rx="4"/><text class="lbl" x="519.9" y="201.8" text-anchor="middle">/assistant · /story</text></g>
-<g class="edge lblg resp" data-from="runtime" data-to="raisin" data-flows="chat" data-dir="resp" data-roles="finance donor participant"><rect class="lbl-bg" x="459.7" y="162.8" width="120.8" height="18" rx="4"/><text class="lbl" x="520.1" y="175.8" text-anchor="middle">answer · trace_id</text></g>
-<g class="edge lblg flow" data-from="runtime" data-to="raisin" data-flows="tools" data-dir="req" data-roles="finance donor"><rect class="lbl-bg" x="514.0" y="286.8" width="172.0" height="18" rx="4"/><text class="lbl" x="600.0" y="299.8" text-anchor="middle">tools /api/* · PIP · JWKS</text></g>
-<g class="edge lblg resp" data-from="raisin" data-to="runtime" data-flows="tools" data-dir="resp" data-roles="finance donor"><rect class="lbl-bg" x="514.0" y="312.8" width="172.0" height="18" rx="4"/><text class="lbl" x="600.0" y="325.8" text-anchor="middle">tenant · tool JSON · keys</text></g>
-<g class="edge lblg flow" data-from="raisin" data-to="paygw" data-flows="donate" data-dir="req" data-roles="donate"><rect class="lbl-bg" x="321.6" y="299.5" width="56.8" height="18" rx="4"/><text class="lbl" x="350.0" y="312.5" text-anchor="middle">/donate</text></g>
-<g class="edge lblg resp" data-from="paygw" data-to="raisin" data-flows="donate" data-dir="resp" data-roles="donate"><rect class="lbl-bg" x="378.2" y="299.5" width="133.6" height="18" rx="4"/><text class="lbl" x="445.0" y="312.5" text-anchor="middle">approved / declined</text></g>
-<g class="edge lblg flow" data-from="raisin" data-to="postgres" data-flows="donate tools" data-dir="req" data-roles="finance donor donate"><rect class="lbl-bg" x="455.2" y="398.7" width="69.6" height="18" rx="4"/><text class="lbl" x="490.0" y="411.7" text-anchor="middle">raisin db</text></g>
-<g class="edge lblg resp" data-from="postgres" data-to="raisin" data-flows="donate tools" data-dir="resp" data-roles="finance donor donate"><rect class="lbl-bg" x="521.2" y="382.7" width="37.6" height="18" rx="4"/><text class="lbl" x="540.0" y="395.7" text-anchor="middle">rows</text></g>
+<g class="edge lblg flow" data-from="user" data-to="fundraising" data-flows="chat donate" data-dir="req" data-roles="finance donor participant donate"><rect class="lbl-bg" x="193.1" y="219.5" width="95.2" height="18" rx="4"/><text class="lbl" x="240.7" y="232.5" text-anchor="middle">JWT + request</text></g>
+<g class="edge lblg resp" data-from="fundraising" data-to="user" data-flows="chat donate" data-dir="resp" data-roles="finance donor participant donate"><rect class="lbl-bg" x="214.1" y="239.7" width="50.4" height="18" rx="4"/><text class="lbl" x="239.3" y="252.7" text-anchor="middle">answer</text></g>
+<g class="edge lblg flow" data-from="fundraising" data-to="runtime" data-flows="chat" data-dir="req" data-roles="finance donor participant"><rect class="lbl-bg" x="453.1" y="188.8" width="133.6" height="18" rx="4"/><text class="lbl" x="519.9" y="201.8" text-anchor="middle">/assistant · /story</text></g>
+<g class="edge lblg resp" data-from="runtime" data-to="fundraising" data-flows="chat" data-dir="resp" data-roles="finance donor participant"><rect class="lbl-bg" x="459.7" y="162.8" width="120.8" height="18" rx="4"/><text class="lbl" x="520.1" y="175.8" text-anchor="middle">answer · trace_id</text></g>
+<g class="edge lblg flow" data-from="runtime" data-to="fundraising" data-flows="tools" data-dir="req" data-roles="finance donor"><rect class="lbl-bg" x="514.0" y="286.8" width="172.0" height="18" rx="4"/><text class="lbl" x="600.0" y="299.8" text-anchor="middle">tools /api/* · PIP · JWKS</text></g>
+<g class="edge lblg resp" data-from="fundraising" data-to="runtime" data-flows="tools" data-dir="resp" data-roles="finance donor"><rect class="lbl-bg" x="514.0" y="312.8" width="172.0" height="18" rx="4"/><text class="lbl" x="600.0" y="325.8" text-anchor="middle">tenant · tool JSON · keys</text></g>
+<g class="edge lblg flow" data-from="fundraising" data-to="paygw" data-flows="donate" data-dir="req" data-roles="donate"><rect class="lbl-bg" x="321.6" y="299.5" width="56.8" height="18" rx="4"/><text class="lbl" x="350.0" y="312.5" text-anchor="middle">/donate</text></g>
+<g class="edge lblg resp" data-from="paygw" data-to="fundraising" data-flows="donate" data-dir="resp" data-roles="donate"><rect class="lbl-bg" x="378.2" y="299.5" width="133.6" height="18" rx="4"/><text class="lbl" x="445.0" y="312.5" text-anchor="middle">approved / declined</text></g>
+<g class="edge lblg flow" data-from="fundraising" data-to="postgres" data-flows="donate tools" data-dir="req" data-roles="finance donor donate"><rect class="lbl-bg" x="455.2" y="398.7" width="69.6" height="18" rx="4"/><text class="lbl" x="490.0" y="411.7" text-anchor="middle">fundraising db</text></g>
+<g class="edge lblg resp" data-from="postgres" data-to="fundraising" data-flows="donate tools" data-dir="resp" data-roles="finance donor donate"><rect class="lbl-bg" x="521.2" y="382.7" width="37.6" height="18" rx="4"/><text class="lbl" x="540.0" y="395.7" text-anchor="middle">rows</text></g>
 <g class="edge lblg flow" data-from="runtime" data-to="postgres" data-flows="rag" data-dir="req" data-roles="finance donor"><rect class="lbl-bg" x="574.6" y="344.5" width="152.8" height="18" rx="4"/><text class="lbl" x="651.0" y="357.5" text-anchor="middle">kb · pgvector · memory</text></g>
 <g class="edge lblg resp" data-from="postgres" data-to="runtime" data-flows="rag" data-dir="resp" data-roles="finance donor"><rect class="lbl-bg" x="563.4" y="392.5" width="191.2" height="18" rx="4"/><text class="lbl" x="659.0" y="405.5" text-anchor="middle">chunks · state · approval id</text></g>
 <g class="edge lblg flow" data-from="runtime" data-to="litellm" data-flows="chat" data-dir="req" data-roles="finance donor participant"><rect class="lbl-bg" x="861.2" y="236.2" width="197.6" height="18" rx="4"/><text class="lbl" x="960.0" y="249.2" text-anchor="middle">chat/completions · embeddings</text></g>
@@ -449,14 +449,14 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
 <g class="edge lblg tele" data-from="otel" data-to="jaeger" data-flows="tele" data-dir="req" data-roles="finance donor participant donate"><rect class="lbl-bg" x="772.0" y="723.8" width="76.0" height="18" rx="4"/><text class="lbl" x="810.0" y="736.8" text-anchor="middle">all traces</text></g>
 <g class="edge lblg tele" data-from="otel" data-to="phoenix" data-flows="tele" data-dir="req" data-roles="finance donor participant donate"><rect class="lbl-bg" x="772.0" y="772.8" width="76.0" height="18" rx="4"/><text class="lbl" x="810.0" y="785.8" text-anchor="middle">all traces</text></g>
 <g class="edge lblg tele" data-from="otel" data-to="siem" data-flows="tele" data-dir="req" data-roles="finance donor participant donate"><rect class="lbl-bg" x="759.2" y="845.8" width="101.6" height="18" rx="4"/><text class="lbl" x="810.0" y="858.8" text-anchor="middle">security spans</text></g>
-<g class="node ext" data-id="user" data-title="Browser" data-kind="outside compose" data-port="" data-doc="" data-purpose="The chat console at /ui or any HTTP client. Gets a JWT from raisin-api&#x27;s /auth/token (sub, tenant_id, role) and sends it with every request. Lives outside compose." tabindex="0" role="button" aria-label="Browser: The chat console at /ui or any HTTP client. Gets a JWT from raisin-api&#x27;s /auth/token (sub, tenant_id, role) and sends it with every request. Lives outside compose.">
+<g class="node ext" data-id="user" data-title="Browser" data-kind="outside compose" data-port="" data-doc="" data-purpose="The chat console at /ui or any HTTP client. Gets a JWT from fundraising-api&#x27;s /auth/token (sub, tenant_id, role) and sends it with every request. Lives outside compose." tabindex="0" role="button" aria-label="Browser: The chat console at /ui or any HTTP client. Gets a JWT from fundraising-api&#x27;s /auth/token (sub, tenant_id, role) and sends it with every request. Lives outside compose.">
 <rect x="50" y="215" width="140" height="64" rx="8"/>
 <text class="nt" x="64" y="241">Browser</text>
 <text class="ns" x="64" y="260">console user + JWT</text>
 </g>
-<g class="node svc" data-id="raisin" data-title="raisin-api" data-kind="built here" data-port="18080" data-doc="raisin-api.md" data-purpose="Identity stand-in, application API and system of record in one FastAPI process. Issues JWTs, serves /donate, /assistant and /story, and is the only service that reads the raisin database. Tool routes under /api/* require the runtime&#x27;s service token and re-check the JWT role against roles.json." tabindex="0" role="button" aria-label="raisin-api: Identity stand-in, application API and system of record in one FastAPI process. Issues JWTs, serves /donate, /assistant and /story, and is the only service that reads the raisin database. Tool routes under /api/* require the runtime&#x27;s service token and re-check the JWT role against roles.json.">
+<g class="node svc" data-id="fundraising" data-title="fundraising-api" data-kind="built here" data-port="18080" data-doc="fundraising-api.md" data-purpose="Identity stand-in, application API and system of record in one FastAPI process. Issues JWTs, serves /donate, /assistant and /story, and is the only service that reads the fundraising database. Tool routes under /api/* require the runtime&#x27;s service token and re-check the JWT role against roles.json." tabindex="0" role="button" aria-label="fundraising-api: Identity stand-in, application API and system of record in one FastAPI process. Issues JWTs, serves /donate, /assistant and /story, and is the only service that reads the fundraising database. Tool routes under /api/* require the runtime&#x27;s service token and re-check the JWT role against roles.json.">
 <rect x="290" y="205" width="180" height="72" rx="8"/>
-<text class="nt" x="304" y="231">raisin-api</text>
+<text class="nt" x="304" y="231">fundraising-api</text>
 <text class="ns" x="304" y="250">identity · API · records</text>
 </g>
 <g class="node svc" data-id="paygw" data-title="payment-gateway" data-kind="built here" data-port="18070" data-doc="payment-gateway.md" data-purpose="Stub that approves or declines a donation. Exists as its own service.name so a trace can prove the payment path never touches an AI container." tabindex="0" role="button" aria-label="payment-gateway: Stub that approves or declines a donation. Exists as its own service.name so a trace can prove the payment path never touches an AI container.">
@@ -479,17 +479,17 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
 <text class="nt" x="584" y="231">agent-runtime</text>
 <text class="ns" x="584" y="250">tool loop · PEP · RAG · memory</text>
 </g>
-<g class="node img" data-id="postgres" data-title="postgres" data-kind="upstream image" data-port="15432" data-doc="postgres.md" data-purpose="PostgreSQL 16 with pgvector, three databases: raisin (donations, transactions, donors, registry table), kb (embedded docs, agent_memory, approvals) and litellm (virtual keys, spend). One poc role, no row-level security (open finding F4)." tabindex="0" role="button" aria-label="postgres: PostgreSQL 16 with pgvector, three databases: raisin (donations, transactions, donors, registry table), kb (embedded docs, agent_memory, approvals) and litellm (virtual keys, spend). One poc role, no row-level security (open finding F4).">
+<g class="node img" data-id="postgres" data-title="postgres" data-kind="upstream image" data-port="15432" data-doc="postgres.md" data-purpose="PostgreSQL 16 with pgvector, three databases: fundraising (donations, transactions, donors, registry table), kb (embedded docs, agent_memory, approvals) and litellm (virtual keys, spend). One poc role, no row-level security (open finding F4)." tabindex="0" role="button" aria-label="postgres: PostgreSQL 16 with pgvector, three databases: fundraising (donations, transactions, donors, registry table), kb (embedded docs, agent_memory, approvals) and litellm (virtual keys, spend). One poc role, no row-level security (open finding F4).">
 <rect x="570" y="470" width="170" height="80" rx="8"/>
 <text class="nt" x="584" y="496">postgres</text>
-<text class="ns" x="584" y="515">pgvector · raisin · kb · litellm</text>
+<text class="ns" x="584" y="515">pgvector · fundraising · kb · litellm</text>
 </g>
 <g class="node img" data-id="opa" data-title="opa" data-kind="upstream image" data-port="none (F3)" data-doc="opa.md" data-purpose="Open Policy Agent, the Policy Decision Point. aicp.authz decides which model, tools and retrieval filter a caller gets and, per tool call, whether the resource&#x27;s tenant equals the caller&#x27;s. system.authz guards OPA itself: token auth, no host port." tabindex="0" role="button" aria-label="opa: Open Policy Agent, the Policy Decision Point. aicp.authz decides which model, tools and retrieval filter a caller gets and, per tool call, whether the resource&#x27;s tenant equals the caller&#x27;s. system.authz guards OPA itself: token auth, no host port.">
 <rect x="860" y="70" width="200" height="64" rx="8"/>
 <text class="nt" x="874" y="96">opa</text>
 <text class="ns" x="874" y="115">policy decision point</text>
 </g>
-<g class="node file" data-id="policy" data-title="policy/data mount" data-kind="file / mount" data-port="" data-doc="opa.md" data-purpose="Bind-mounted policy/data. roles.json maps role to models, tools and classifications; OPA loads it and raisin-api re-reads it. registry.json is generated by seed from the ai_registry table and loaded as OPA data, revision hash on every decision." tabindex="0" role="button" aria-label="policy/data mount: Bind-mounted policy/data. roles.json maps role to models, tools and classifications; OPA loads it and raisin-api re-reads it. registry.json is generated by seed from the ai_registry table and loaded as OPA data, revision hash on every decision.">
+<g class="node file" data-id="policy" data-title="policy/data mount" data-kind="file / mount" data-port="" data-doc="opa.md" data-purpose="Bind-mounted policy/data. roles.json maps role to models, tools and classifications; OPA loads it and fundraising-api re-reads it. registry.json is generated by seed from the ai_registry table and loaded as OPA data, revision hash on every decision." tabindex="0" role="button" aria-label="policy/data mount: Bind-mounted policy/data. roles.json maps role to models, tools and classifications; OPA loads it and fundraising-api re-reads it. registry.json is generated by seed from the ai_registry table and loaded as OPA data, revision hash on every decision.">
 <rect x="860" y="150" width="200" height="52" rx="8"/>
 <text class="nt" x="874" y="176">policy/data mount</text>
 <text class="ns" x="874" y="195">roles.json · registry.json</text>
@@ -546,16 +546,16 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
 </g>
 </svg>
 </div>
-<figcaption>The model never reaches the system of record directly. Each tool call goes agent-runtime → OPA (tenant of the resource must equal tenant of the caller) → raisin-api, which re-checks role against the same roles.json and filters by tenant in SQL. Presidio swaps PII for placeholders before the prompt leaves the runtime. Every service exports spans to one collector, which strips message bodies, then fans out to Jaeger and Phoenix and writes security spans to the SIEM file.</figcaption>
+<figcaption>The model never reaches the system of record directly. Each tool call goes agent-runtime → OPA (tenant of the resource must equal tenant of the caller) → fundraising-api, which re-checks role against the same roles.json and filters by tenant in SQL. Presidio swaps PII for placeholders before the prompt leaves the runtime. Every service exports spans to one collector, which strips message bodies, then fans out to Jaeger and Phoenix and writes security spans to the SIEM file.</figcaption>
 </figure>
 
 <div class="notes">
-  <div><h2>Request path</h2><p>Browser → <code>raisin-api</code> (JWT from <code>/auth/token</code>) → <code>agent-runtime</code> → <code>litellm</code> → provider. Donations go <code>raisin-api</code> → <code>payment-gateway</code> and never touch the AI path.</p></div>
+  <div><h2>Request path</h2><p>Browser → <code>fundraising-api</code> (JWT from <code>/auth/token</code>) → <code>agent-runtime</code> → <code>litellm</code> → provider. Donations go <code>fundraising-api</code> → <code>payment-gateway</code> and never touch the AI path.</p></div>
   <div><h2>Control checks per request</h2><p>OPA model stage (allowed model, tools, retrieval filter), Presidio analyze, guardrails input check, one NeMo self-check per retrieved chunk, OPA tool stage per call, guardrails output check, Presidio anonymize for Donors. Any control unreachable means deny.</p></div>
-  <div><h2>Shared Postgres, three databases</h2><p><code>raisin</code> (donations, transactions, donors, registry table), <code>kb</code> (pgvector docs, <code>agent_memory</code>, approvals), <code>litellm</code> (virtual keys, spend). Single <code>poc</code> role, no RLS (open finding F4).</p></div>
+  <div><h2>Shared Postgres, three databases</h2><p><code>fundraising</code> (donations, transactions, donors, registry table), <code>kb</code> (pgvector docs, <code>agent_memory</code>, approvals), <code>litellm</code> (virtual keys, spend). Single <code>poc</code> role, no RLS (open finding F4).</p></div>
   <div><h2>Observability</h2><p>Collector drops raw gateway spans and strips message content, then exports to Jaeger (gRPC), Phoenix (HTTP) and <code>observability/siem/security-events.jsonl</code> for spans tagged as security events. OPA sends its own traces too.</p></div>
   <div><h2>One-shot jobs</h2><p><code>seed</code> (profile <code>seed</code>): schema, fixtures, LiteLLM virtual keys, embeds 10 docs through the gateway, PUTs the registry into OPA. <code>gate</code> (profile <code>gate</code>): hour-one trace-nesting risk gate against LiteLLM.</p></div>
-  <div><h2>Not drawn</h2><p>Responses for seed, gate and traces (fire-and-forget or setup-only). Host port offsets (14xxx / 15xxx / 16xxx / 18xxx), health checks, the guardrails classifier download at first start, and the <code>roles.json</code> mount that <code>raisin-api</code> also reads.</p></div>
+  <div><h2>Not drawn</h2><p>Responses for seed, gate and traces (fire-and-forget or setup-only). Host port offsets (14xxx / 15xxx / 16xxx / 18xxx), health checks, the guardrails classifier download at first start, and the <code>roles.json</code> mount that <code>fundraising-api</code> also reads.</p></div>
 </div>
 </div>
 
@@ -566,7 +566,7 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
   var clear = document.getElementById('clear');
   var edges = Array.prototype.slice.call(svg.querySelectorAll('.edge'));
   var nodes = Array.prototype.slice.call(svg.querySelectorAll('.node'));
-  var tracers = ["raisin", "paygw", "runtime", "opa", "guardrails", "litellm", "nemo"];
+  var tracers = ["fundraising", "paygw", "runtime", "opa", "guardrails", "litellm", "nemo"];
   var selected = null;
   var wrap = svg.parentNode;
   var bubble = document.getElementById('bubble');
@@ -611,10 +611,10 @@ figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 
   var note = document.getElementById('scen-note');
   var NOTES = {
     all: 'Every container and every call. Pick a scenario to see only the containers one kind of request touches.',
-    finance: 'Finance user on /assistant: Operations Agent persona, 28 tools behind OPA + raisin-api, RAG over platform and tenant-internal docs, conversation memory, resend_receipt parked as an approval. Model: claude-sonnet or gpt-4o-mini.',
+    finance: 'Finance user on /assistant: Operations Agent persona, 28 tools behind OPA + fundraising-api, RAG over platform and tenant-internal docs, conversation memory, resend_receipt parked as an approval. Model: claude-sonnet or gpt-4o-mini.',
     donor: 'Donor on /assistant: only search_kb and get_my_donations (resource owner = JWT subject), platform docs only, Presidio anonymizer always consulted on the answer. Model: gpt-4o-mini.',
     participant: 'Participant on /story: story-generator prompt, no tools, no retrieval, no memory. PII placeholders in, guardrails on the input and the story, output restored from placeholders. Model: claude-sonnet or gpt-4o-mini.',
-    donate: 'POST /donate: raisin-api assigns the donation id, calls payment-gateway, stores the result. No AI container is reachable from this path; the trace proves it.',
+    donate: 'POST /donate: fundraising-api assigns the donation id, calls payment-gateway, stores the result. No AI container is reachable from this path; the trace proves it.',
     setup: 'make seed + make gate: schema and fixtures, LiteLLM virtual keys, 10 docs embedded through the gateway, registry PUT into OPA, hour-one trace-nesting gate.'
   };
   function scenario() { var s = 'all'; scens.forEach(function (r) { r.parentNode.classList.toggle('on', r.checked); if (r.checked) s = r.value; }); return s; }

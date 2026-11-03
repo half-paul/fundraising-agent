@@ -12,7 +12,7 @@ request traces.
 |---|---|
 | Build | `services/seed/Dockerfile` (psycopg, httpx) |
 | Code | `services/seed/seed.py`, `fixtures.py`, `schema.sql`, `kb_schema.sql`, `docs/` (10 markdown files) |
-| Env | `RAISIN_DATABASE_URL`, `KB_DATABASE_URL`, `LITELLM_BASE_URL`, `LITELLM_MASTER_KEY`, the five `LITELLM_KEY_*` values, `OPA_URL`, `OPA_TOKEN_SEED`, `REGISTRY_PATH=/policy-data/registry.json` (bind mount `./policy/data`, read-write) |
+| Env | `FUNDRAISING_DATABASE_URL`, `KB_DATABASE_URL`, `LITELLM_BASE_URL`, `LITELLM_MASTER_KEY`, the five `LITELLM_KEY_*` values, `OPA_URL`, `OPA_TOKEN_SEED`, `REGISTRY_PATH=/policy-data/registry.json` (bind mount `./policy/data`, read-write) |
 | Depends on | `postgres` healthy, `litellm` healthy, `opa` started |
 
 ### Commands
@@ -20,7 +20,7 @@ request traces.
 | `python seed.py ...` | Make target | Does |
 |---|---|---|
 | `all` (default) | `make seed` | `schema` → `keys` → `registry` → `index` (index failure is non-fatal: re-run `index` once `OPENAI_API_KEY` works) |
-| `schema` | | applies `schema.sql` to `raisin` and `kb_schema.sql` to `kb`; upserts tenants, users, donors, donations, transactions, `ai_registry` rows from `fixtures.py` |
+| `schema` | | applies `schema.sql` to `fundraising` and `kb_schema.sql` to `kb`; upserts tenants, users, donors, donations, transactions, `ai_registry` rows from `fixtures.py` |
 | `keys` | | `GET /key/list` with the master key, then `POST /key/generate` for each missing alias with `max_budget`, `budget_duration`, `models`, `metadata.tenant` |
 | `index` | | embeds each doc as one chunk via `POST litellm/embeddings` (`text-embedding-3-small`, `seed-indexer` key) and upserts into `kb.chunks` with tenant and classification from `fixtures.DOCS` |
 | `registry` | | reads `ai_registry`, writes `policy/data/registry.json` with `revision = sha256(document)[:16]`, `PUT /v1/data/registry` to OPA with the seed token |

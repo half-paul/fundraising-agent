@@ -17,11 +17,11 @@ output and `decision_id` stay in the trace only (security review F5: no oracle f
 
 | # | Failure | Where it stops | Caller | Model saw | Trace / SIEM |
 |---|---|---|---|---|---|
-| F1 | No or invalid JWT | `raisin-api` (and `agent-runtime` independently) | 401 | nothing | `POST /assistant` 401, no `assistant.run` |
+| F1 | No or invalid JWT | `fundraising-api` (and `agent-runtime` independently) | 401 | nothing | `POST /assistant` 401, no `assistant.run` |
 | F2 | Model not allowed for the role | OPA model stage | 403 `policy_deny` `model_not_in_role` | nothing | `policy.decide` deny, event `policy.deny`, SIEM row |
 | F3 | Prompt injection in the question | guardrails input scan | 400 `guardrail_block` stage `input` | nothing | `guardrail.input` block, `guardrail.nemo` hit, `guardrail.classifier` hit, SIEM row |
-| F4 | Direct call to `/api/*` without the service token | `raisin-api authorize` | 403 | n/a | `authz.result=deny_no_service_token` |
-| F5 | Donor JWT on a finance route (with service token) | `raisin-api authorize` | 403 | n/a | `policy.result=deny` `tool_not_in_role`, SIEM row |
+| F4 | Direct call to `/api/*` without the service token | `fundraising-api authorize` | 403 | n/a | `authz.result=deny_no_service_token` |
+| F5 | Donor JWT on a finance route (with service token) | `fundraising-api authorize` | 403 | n/a | `policy.result=deny` `tool_not_in_role`, SIEM row |
 | F6 | Finance B asks for tenant A's donation | OPA tool stage (ABAC) | 200, "not found for your charity" | `{"error":"not_found"}` | `execute_tool` `tool.result=denied` `tenant_mismatch`, `policy.decide` deny, SIEM row |
 | F7 | Client supplies its own `donation_id` on `/donate` | pydantic `extra=forbid` | 422 | n/a | `POST /donate` 422 |
 | F8 | Model output contains a secret or raw PII | guardrails output scan / Presidio | 200 with refusal text | its own draft | `guardrail.output` block, SIEM row |
@@ -42,7 +42,7 @@ HTTP 401
 {"detail": "missing bearer token"}
 ```
 
-`raisin-api` rejects before forwarding. The runtime performs the same check independently against the JWKS (with a
+`fundraising-api` rejects before forwarding. The runtime performs the same check independently against the JWKS (with a
 one-time refresh if the signing key rotated under the same kid), so a caller that reached port 18090 directly would also
 get 401.
 
@@ -136,7 +136,7 @@ HTTP 403
 {"detail": "role not permitted for this resource"}
 ```
 
-`raisin-api` maps `/api/summary` to the backing tool `get_tenant_donation_summary` and checks the JWT role against the
+`fundraising-api` maps `/api/summary` to the backing tool `get_tenant_donation_summary` and checks the JWT role against the
 same `policy/data/roles.json` OPA uses. Donor's tool list is `[search_kb, get_my_donations]`. The span carries
 `policy.result=deny`, `policy.reason=tool_not_in_role`, so it lands in the SIEM feed:
 
@@ -169,7 +169,7 @@ agent-runtime  assistant.run
  guardrail.input                pass
  chat gpt-4o-mini               594 in / 18 out  gen_ai.tool.calls=[get_donation]
  execute_tool get_donation      21 ms  tool.result=denied  tool.deny_reason=tenant_mismatch
-  pip.donation_tenant           donation.id=873928 → tenant-a        (raisin-api db.query)
+  pip.donation_tenant           donation.id=873928 → tenant-a        (fundraising-api db.query)
   policy.decide                 stage=tool result=deny reason=tenant_mismatch  event policy.deny   ← red span
  chat gpt-4o-mini               640 in / 23 out
  guardrail.output               pass

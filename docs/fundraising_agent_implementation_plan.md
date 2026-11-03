@@ -1,8 +1,8 @@
-# Raisin Agent Implementation Plan
+# Fundraising Agent Implementation Plan
 
 ## Objective
 
-Evolve the existing Raisin AI platform into a governed, single-agent architecture capable of:
+Evolve the existing Fundraising AI platform into a governed, single-agent architecture capable of:
 
 - accepting goal-oriented requests;
 - dynamically selecting tools;
@@ -25,7 +25,7 @@ This plan deliberately excludes specialist agents, sub-agents, handoffs, and mul
                            │
                            ▼
                  ┌───────────────────┐
-                 │   Raisin Agent    │
+                 │   Fundraising Agent    │
                  │                   │
                  │ Goal              │
                  │ Plan              │
@@ -52,7 +52,7 @@ This plan deliberately excludes specialist agents, sub-agents, handoffs, and mul
         ▼                    ▼              ▼              ▼
    Transactions          Campaigns       Donors      Operations
         │                    │              │              │
-        └──────────────── Raisin APIs / Services ──────────┘
+        └──────────────── Fundraising APIs / Services ──────────┘
 
                           │
                           ▼
@@ -70,11 +70,11 @@ OPA and the application authorization layer remain authoritative.
 
 # Phase 1 — Define the First Agent Use Case
 
-Start with a narrowly bounded use case rather than exposing the entire Raisin platform.
+Start with a narrowly bounded use case rather than exposing the entire Fundraising platform.
 
 ## Initial Use Case
 
-**Raisin Transaction Investigation Agent**
+**Fundraising Transaction Investigation Agent**
 
 Initial capabilities:
 
@@ -339,9 +339,9 @@ Execute        Human
 {
   "user": "user-id",
   "tenant": "organization-123",
-  "role": "raisin-admin",
+  "role": "fundraising-admin",
   "environment": "production",
-  "agent": "raisin-agent",
+  "agent": "fundraising-agent",
   "tool": "get_transaction_statistics",
   "action": "read",
   "resource": "campaign-456",
@@ -904,7 +904,7 @@ Create a stable instruction layer.
 Avoid:
 
 ```text
-You are a helpful Raisin assistant.
+You are a helpful Fundraising assistant.
 ```
 
 Use something more explicit.
@@ -912,12 +912,12 @@ Use something more explicit.
 ```text
 ROLE
 
-You are the Raisin Operations Agent.
+You are the Fundraising Operations Agent.
 
 OBJECTIVE
 
 Investigate operational and transaction-related
-questions using authorized Raisin tools.
+questions using authorized Fundraising tools.
 
 RULES
 
@@ -1096,7 +1096,7 @@ Agent
 +
 RAG
 +
-Raisin read-only tools
+Fundraising read-only tools
 +
 OPA
 +
@@ -1259,7 +1259,7 @@ OPA
 RAG
 Memory
 OpenTelemetry
-Raisin APIs
+Fundraising APIs
 Tenant isolation
 ```
 
@@ -1290,7 +1290,7 @@ The primary engineering effort is:
 Keep LiteLLM as the model gateway rather than tying the agent runtime to one provider.
 
 ```text
-              Raisin Agent
+              Fundraising Agent
                    │
                    ▼
                 LiteLLM

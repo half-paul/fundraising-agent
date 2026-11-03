@@ -14,7 +14,7 @@ os.environ.setdefault("OPA_URL", "http://localhost")
 os.environ.setdefault("GUARDRAILS_URL", "http://localhost")
 os.environ.setdefault("PRESIDIO_ANALYZER_URL", "http://localhost")
 os.environ.setdefault("PRESIDIO_ANONYMIZER_URL", "http://localhost")
-os.environ.setdefault("RAISIN_API_URL", "http://localhost")
+os.environ.setdefault("FUNDRAISING_API_URL", "http://localhost")
 os.environ.setdefault("RUNTIME_SERVICE_TOKEN", "test")
 os.environ.setdefault("KB_DATABASE_URL", "postgresql://test/test")
 

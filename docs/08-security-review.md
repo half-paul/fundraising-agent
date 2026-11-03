@@ -1,7 +1,7 @@
 # 08 — Security Review (Phase 16)
 
 Status: pre-production review against the OWASP GenAI / Agentic Top 10, written before any production rollout
-(docs/raisin_agent_implementation_plan.md Phase 17). This is a code-review + eval-coverage pass, not a
+(docs/fundraising_agent_implementation_plan.md Phase 17). This is a code-review + eval-coverage pass, not a
 penetration test — no external red team, no fuzzing campaign, no load test.
 
 References:
@@ -269,5 +269,5 @@ correctly end-to-end, versus in unit tests only.
   fixture per category used here.
 
 This review covers the agent runtime and policy layer as implemented at the time of writing. It does not cover
-infrastructure security (container hardening, network policy, secrets management) or the underlying Raisin
+infrastructure security (container hardening, network policy, secrets management) or the underlying Fundraising
 API/Postgres services outside the agent's own tool boundary.

@@ -53,7 +53,7 @@ python3 scripts/siem_tail.py -f     # follow
 : > observability/siem/security-events.jsonl   # reset before a clean run
 ```
 
-Spans that land here, by source: `policy.decide` with `policy.result=deny` (runtime), `raisin-api /api/*` role denies
+Spans that land here, by source: `policy.decide` with `policy.result=deny` (runtime), `fundraising-api /api/*` role denies
 (they set `policy.result=deny` on purpose), `guardrail.input` / `guardrail.output` with `verdict=block`,
 `guardrail.scan.*` with `block` or `flagged`, `guardrail.retrieved` with `flagged`.
 

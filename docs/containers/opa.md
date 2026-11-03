@@ -116,7 +116,7 @@ and the runtime's token cannot change anything.
 ## When it is down
 
 Every `policy.decide` times out (2 s) or fails to connect; the runtime synthesizes `{allow: false, reason: unavailable}`,
-records the exception on the span, and returns 403 `policy_deny`. No model or guardrail call is made. `raisin-api`'s
+records the exception on the span, and returns 403 `policy_deny`. No model or guardrail call is made. `fundraising-api`'s
 `/api/*` role check does not depend on OPA (it reads `roles.json` directly), so an OPA outage does not open the backend.
 
 Note: `roles.json` is read at OPA start; edit it and `docker compose restart opa`. `registry.json` is pushed live by `seed`.
@@ -165,4 +165,4 @@ missing from `allowed_tools` and a new `registry_revision`; a tool-stage call fo
 ## Related
 
 - Policy source: `policy/authz.rego`, `policy/system_authz.rego`; tests alongside
-- Enforcement: [agent-runtime.md](agent-runtime.md); registry producer: [seed.md](seed.md); second layer: [raisin-api.md](raisin-api.md)
+- Enforcement: [agent-runtime.md](agent-runtime.md); registry producer: [seed.md](seed.md); second layer: [fundraising-api.md](fundraising-api.md)

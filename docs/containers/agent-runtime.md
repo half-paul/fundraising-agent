@@ -3,13 +3,13 @@
 The half of the **AI Gateway** box that LiteLLM does not do: the tool loop, the Policy Enforcement Point (PEP), the
 guardrail client, and the place where PII placeholders live and die. Roughly 1250 lines of Python across ten modules. It
 holds no database credentials for the system of record; it holds LiteLLM virtual keys, an OPA token, a guardrails token
-and a service token for `raisin-api`.
+and a service token for `fundraising-api`.
 
 | | |
 |---|---|
 | Build | `services/agent-runtime/Dockerfile` (FastAPI, openai SDK, httpx, psycopg, PyJWT) |
-| Port | 18090 → 8090 (the console and scripted scenarios go through `raisin-api`, not this port) |
-| Depends on | `litellm` healthy, `raisin-api` healthy, `opa` started |
+| Port | 18090 → 8090 (the console and scripted scenarios go through `fundraising-api`, not this port) |
+| Depends on | `litellm` healthy, `fundraising-api` healthy, `opa` started |
 | Health | `GET /health` → `{"ok": true, "trace_content": "off", "debug_panel": "on"}` |
 | Code | `app.py` (endpoints, envelope), `policy.py` (PEP), `guardrails.py` (Presidio + guardrails client, stages), `tools.py` (12 handlers, PIP, placeholder resolution, RAG), `memory.py` (controlled agent memory, kb database), `approvals.py` (human approval queue, kb database), `llm.py` (chat/embed spans, content minimization), `auth.py` (JWKS verification), `limits.py` (loop-pattern detector, termination messages — pure, no deps), `config.py` |
 
@@ -22,7 +22,7 @@ and a service token for `raisin-api`.
 | `OPA_URL`, `OPA_TOKEN_RUNTIME` | PDP; the token may only `POST /v1/data/aicp/authz/decision` (OPA `system.authz`) |
 | `GUARDRAILS_URL`, `GUARDRAILS_AUTH_TOKEN` | orchestrator |
 | `PRESIDIO_ANALYZER_URL`, `PRESIDIO_ANONYMIZER_URL` | PII services |
-| `RAISIN_API_URL`, `RUNTIME_SERVICE_TOKEN` | tool backend + PIPs; the token is what makes `/api/*` reachable |
+| `FUNDRAISING_API_URL`, `RUNTIME_SERVICE_TOKEN` | tool backend + PIPs; the token is what makes `/api/*` reachable |
 | `KB_DATABASE_URL` | pgvector `kb` database (the only DB the runtime touches) |
 | `DEBUG_TRACE_CONTENT` (`off`) | `on` puts full prompts, replies and tool args into spans (Phoenix playback); off = structure + sha256 (F1) |
 | `DEBUG_PANEL` (`off`) | `on` adds `policy`, `tool_calls`, `guardrails` to responses and full detail to 4xx bodies (console); off = `answer` + `trace_id` (F5/F6) |
@@ -100,7 +100,7 @@ table (same credentials as `memory.py`, no new secret).
 
 Who may list/decide is a direct role check (`claims["role"] == "Finance"`) plus a tenant filter on every query, not
 an OPA call -- these endpoints execute nothing by themselves, so the "second, independent layer" pattern
-`raisin-api`'s own `/api/*` routes already use applies here too (see [opa.md](opa.md)). The OPA call that actually
+`fundraising-api`'s own `/api/*` routes already use applies here too (see [opa.md](opa.md)). The OPA call that actually
 gates execution is `approval_execute`, step 3 above.
 
 ## Interface
@@ -119,7 +119,7 @@ Error vocabulary (`error` field): `policy_deny` (403), `no_gateway_key` (403), `
 
 ## The request algorithm (`/run`)
 
-1. `verify_bearer`: JWKS from `raisin-api`, RS256, `aud=aicp`, `iss=raisin-api`; one refresh-and-retry on `InvalidSignatureError`
+1. `verify_bearer`: JWKS from `fundraising-api`, RS256, `aud=aicp`, `iss=fundraising-api`; one refresh-and-retry on `InvalidSignatureError`
    (key rotated under the same kid). Claims → span attributes.
 2. Pick the persona by role (Phase 13): `prompt_name = "operations-agent-v1"` for Finance, else `"assistant-system-v1"`.
    `policy.decide("model", claims, model=req.model or "", prompt=prompt_name)`. Deny → 403. Allow → `model`,
@@ -159,7 +159,7 @@ restoration (`Placeholders.restore` for the story, `Placeholders.social` for the
 | `save_task_state(key, value)` | self-scoped; validated (`memory.validate_key`/`validate_value`) before write; `bad_args` if no `session_id` | `kb.agent_memory` | medium |
 | `resend_receipt(donation_id)` | by-id; offered to Finance, but OPA's tool stage always denies with `requires_approval` first (Phase 10) | `/api/donations/{id}/resend-receipt` | high |
 
-Transaction-investigation tool set (implementation plan Phase 3, literal plan tool names -- see `raisin-api.md#system-of-record-tools-call-these`
+Transaction-investigation tool set (implementation plan Phase 3, literal plan tool names -- see `fundraising-api.md#system-of-record-tools-call-these`
 for each one's endpoint and return shape). All `action_risk=low` (Phase 1 autonomy: READ+ANALYZE+RECOMMEND only):
 
 | Tool | Shape | `action_risk` |
@@ -220,7 +220,7 @@ Tenant-scoped tools return `{"error": "denied", "reason": ...}` on OPA deny and 
 
 ## When it is down
 
-`/assistant` and `/story` fail at `raisin-api`'s forward (connection error → 500). `/donate` and everything else continue.
+`/assistant` and `/story` fail at `fundraising-api`'s forward (connection error → 500). `/donate` and everything else continue.
 Because it is the only holder of `RUNTIME_SERVICE_TOKEN`, nothing else can reach `/api/*` while it is down.
 
 ## Success example
@@ -232,7 +232,7 @@ guardrail.input           placeholders=1   entities=[EMAIL_ADDRESS:1]     → mo
 chat gpt-4o-mini          gen_ai.tool.calls=[find_donor]                  → args {"email": "<EMAIL_ADDRESS_1>"}
 execute_tool find_donor   tool.result=ok  tool.arg.resolved_placeholder=true
   policy.decide           stage=tool allow
-  raisin-api POST /api/donors/lookup   (body carries the real email; never a URL attribute)
+  fundraising-api POST /api/donors/lookup   (body carries the real email; never a URL attribute)
 chat gpt-4o-mini          → "The donor with ID 24 has made 2 donations with a total approved amount of 40.0 CAD. ..."
 guardrail.output          pass
 ```
@@ -244,13 +244,13 @@ donation 873928." →  `execute_tool resend_receipt` → `policy.decide` deny `r
 `approvals.create` → answer tells the user "request **APR-15edf95bef46** needs sign-off". A same-tenant Finance
 approver then calls `POST /approvals/APR-15edf95bef46/decide {"decision": "approve"}` directly (Bearer JWT, no
 model involved) → `policy.decide` stage=`approval_execute` allow → `execute_approved resend_receipt` →
-`raisin-api POST /api/donations/873928/resend-receipt` → `{"approval_id": "APR-...", "status": "executed",
+`fundraising-api POST /api/donations/873928/resend-receipt` → `{"approval_id": "APR-...", "status": "executed",
 "result": {"donation_id": 873928, "receipt_resent_at": "2026-10-04T..."}}`.
 
 Phase 14, live console round trip (2026-10-04): tenant-c Finance asks "Check campaign 2 for fraud signals. If you
 find a clear card-testing pattern, block the worst offending IP and open an incident describing what you found." →
 `get_fraud_signals(campaign_id=2)` → 5 flagged transactions, all `ip_address=203.0.113.50` → `policy.decide` stage=
-tool allow risk=medium for `block_ip_temporarily(ip="203.0.113.50", duration_minutes=120)` → `raisin-api POST
+tool allow risk=medium for `block_ip_temporarily(ip="203.0.113.50", duration_minutes=120)` → `fundraising-api POST
 /api/security/block-ip` (no approval request, unlike `resend_receipt`) → `create_incident(...)` risk=low, same auto-
 execute path → final answer: "I found a clear card-testing pattern from IP 203.0.113.50, with 5 flagged
 transactions and an average fraud score of 0.918. I have temporarily blocked this IP for 120 minutes and opened an
@@ -279,4 +279,4 @@ Tenant mismatch on a tool (F6): model called `get_donation(873928)` as Finance B
 
 - Design and change log: `../../../02_Donation_AI_Control_Plane_POC_Design.md`
 - Tool authorization diagram: `../../../diagrams/10-poc-tool-call-authorization.png`
-- Neighbours: [opa.md](opa.md), [guardrails.md](guardrails.md), [litellm.md](litellm.md), [raisin-api.md](raisin-api.md)
+- Neighbours: [opa.md](opa.md), [guardrails.md](guardrails.md), [litellm.md](litellm.md), [fundraising-api.md](fundraising-api.md)

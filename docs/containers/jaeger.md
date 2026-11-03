@@ -12,7 +12,7 @@ Jaeger v2, all-in-one, in-memory storage. The waterfall view of every request ac
 ## How to use it
 
 - Open `http://localhost:16686/trace/<trace_id>` with the id from any API response or `X-Trace-Id` header.
-- Search: service `raisin-api` for user-facing requests, `agent-runtime` for the AI path, `seed` for seeding.
+- Search: service `fundraising-api` for user-facing requests, `agent-runtime` for the AI path, `seed` for seeding.
 - Tag filters that matter: `policy.result=deny`, `policy.stage=tool`, `guardrail.verdict=block`, `guardrail.verdict=flagged`,
   `enduser.id=finance.b@charity-b.test`, `tenant_id=tenant-b`, `tool.result=denied`.
 - Red spans: `otel.status_code=ERROR`, set on denies, blocks, unavailable controls and provider exceptions.
@@ -32,7 +32,7 @@ Nothing user-facing changes. The collector logs export errors; `make test` fails
 
 ## Success example
 
-Trace `71343ded243c0f5bda29fde82d97bf74` (scenario 1): 114 spans across `raisin-api`, `agent-runtime`, `opa`, `guardrails`,
+Trace `71343ded243c0f5bda29fde82d97bf74` (scenario 1): 114 spans across `fundraising-api`, `agent-runtime`, `opa`, `guardrails`,
 `nemo-guardrails`, `litellm`, all green. Annotated in [../03-success-paths.md](../03-success-paths.md#s1-finance-user-asks-about-own-tenants-donation).
 
 ## Failure example

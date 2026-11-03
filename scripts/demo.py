@@ -10,7 +10,7 @@ import sys
 import urllib.error
 import urllib.request
 
-RAISIN = "http://localhost:18080"
+FUNDRAISING = "http://localhost:18080"
 JAEGER = "http://localhost:16686"
 PHOENIX = "http://localhost:16006"
 CANARY_EMAIL, CANARY_PHONE = "canary.donor@pii-canary.test", "604-555-0199"
@@ -18,7 +18,7 @@ CANARY_EMAIL, CANARY_PHONE = "canary.donor@pii-canary.test", "604-555-0199"
 
 def call(method: str, path: str, body=None, token: str | None = None):
     data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(f"{RAISIN}{path}", data=data, method=method, headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(f"{FUNDRAISING}{path}", data=data, method=method, headers={"Content-Type": "application/json"})
     if token:
         req.add_header("Authorization", f"Bearer {token}")
     try:

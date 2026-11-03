@@ -7,14 +7,14 @@ for RAG plus LiteLLM's key and spend store.
 |---|---|
 | Image | `pgvector/pgvector:0.8.6-pg16-trixie` |
 | Port | 15432 → 5432 |
-| Init | `postgres/initdb/00-create-dbs.sql` creates `litellm`, `raisin`, `kb` (+ `vector` extension) |
+| Init | `postgres/initdb/00-create-dbs.sql` creates `litellm`, `fundraising`, `kb` (+ `vector` extension) |
 | Volume | `pgdata` |
 | Health | `pg_isready -U poc -d litellm` |
 | Credentials | user `poc`, password `POSTGRES_PASSWORD` (default `poc`); one role for all three databases (open finding F4: no RLS) |
 
 ## Databases and tables
 
-**raisin** (schema `services/seed/schema.sql`, written by `seed`, read/written by `raisin-api`):
+**fundraising** (schema `services/seed/schema.sql`, written by `seed`, read/written by `fundraising-api`):
 
 | Table | Purpose |
 |---|---|
@@ -50,7 +50,7 @@ exact tool call; nothing ever rewrites it. See
 
 ## When it is down
 
-`raisin-api` cannot mint tokens or serve any route (500); `litellm` fails its health check and every model call fails;
+`fundraising-api` cannot mint tokens or serve any route (500); `litellm` fails its health check and every model call fails;
 `search_kb` raises inside the runtime. Effectively the whole stack is down. Jaeger and Phoenix keep working (Jaeger is
 in-memory, Phoenix has its own volume).
 
@@ -76,11 +76,11 @@ client cannot collide with or overwrite fixture ids below 900000.
 ## Inspection
 
 ```bash
-docker compose exec postgres psql -U poc -d raisin  -c 'select id, tenant_id, status from donations order by id;'
+docker compose exec postgres psql -U poc -d fundraising  -c 'select id, tenant_id, status from donations order by id;'
 docker compose exec postgres psql -U poc -d kb      -c 'select doc_id, tenant_id, classification from chunks;'
 docker compose exec postgres psql -U poc -d litellm -c 'select key_alias, spend, max_budget from "LiteLLM_VerificationToken";'
 ```
 
 ## Related
 
-- [seed.md](seed.md) (writes schema and fixtures), [raisin-api.md](raisin-api.md), [litellm.md](litellm.md)
+- [seed.md](seed.md) (writes schema and fixtures), [fundraising-api.md](fundraising-api.md), [litellm.md](litellm.md)

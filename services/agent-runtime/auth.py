@@ -1,4 +1,4 @@
-"""JWT verification against raisin-api's JWKS. Claims (tenant_id, role) come from the token, never from
+"""JWT verification against fundraising-api's JWKS. Claims (tenant_id, role) come from the token, never from
 the prompt."""
 import jwt
 from fastapi import HTTPException
@@ -7,9 +7,9 @@ from opentelemetry import trace
 
 import config
 
-# cache_keys=False: PyJWKClient's per-kid key cache never expires, so a rotated raisin-api key with a reused kid
+# cache_keys=False: PyJWKClient's per-kid key cache never expires, so a rotated fundraising-api key with a reused kid
 # would fail forever. The JWK set itself is still cached (lifespan) and refetched when a kid is unknown.
-_jwks = PyJWKClient(f"{config.RAISIN_API_URL}/.well-known/jwks.json", cache_keys=False, cache_jwk_set=True, lifespan=60)
+_jwks = PyJWKClient(f"{config.FUNDRAISING_API_URL}/.well-known/jwks.json", cache_keys=False, cache_jwk_set=True, lifespan=60)
 
 
 def verify_bearer(authorization: str | None) -> dict:
@@ -19,12 +19,12 @@ def verify_bearer(authorization: str | None) -> dict:
     try:
         try:
             key = _jwks.get_signing_key_from_jwt(token).key
-            claims = jwt.decode(token, key, algorithms=["RS256"], audience="aicp", issuer="raisin-api")
+            claims = jwt.decode(token, key, algorithms=["RS256"], audience="aicp", issuer="fundraising-api")
         except jwt.InvalidSignatureError:
             # key rotated under the same kid: refresh the JWKS once and retry
             _jwks.get_jwk_set(refresh=True)
             key = _jwks.get_signing_key_from_jwt(token).key
-            claims = jwt.decode(token, key, algorithms=["RS256"], audience="aicp", issuer="raisin-api")
+            claims = jwt.decode(token, key, algorithms=["RS256"], audience="aicp", issuer="fundraising-api")
     except Exception as e:  # noqa: BLE001
         raise HTTPException(401, {"error": f"invalid token: {type(e).__name__}"}) from e
     span = trace.get_current_span()

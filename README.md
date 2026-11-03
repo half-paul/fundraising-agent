@@ -11,14 +11,14 @@ real RAG (pgvector), one trace per request in Jaeger and Phoenix.
 | Step | State |
 |---|---|
 | 1. Hour-one risk gate (trace nesting through LiteLLM, Phoenix token rendering) | PASS |
-| 2. raisin-api, payment-gateway, seed | done |
+| 2. fundraising-api, payment-gateway, seed | done |
 | 3. OPA policy, registry as OPA data, `opa test` 15/15 | done |
 | 4. Guardrails: `guardrails` orchestrator → `nemo-guardrails` (self-check input/output rails) + injection classifier + output moderation; Presidio analyzer/anonymizer; placeholders; fail-closed | done (LLM Guard replaced 2026-09-06, NeMo added same day) |
 | 5. RAG: pgvector, tenant/classification filter, poisoned doc | done |
 | 6. `make demo` scenarios 0–9, `make test` (PCI scope, PII canary, fail-closed, data-tool API) | done, all PASS |
 | 7. Provider validation: full run on `gpt-4o-mini` and on `claude-sonnet` (OpenRouter) | done 2026-09-06, both PASS |
-| 8. Chat console `/ui` on raisin-api (user picker, assistant/story, model override, control-plane panel per reply) | done 2026-09-06 |
-| 9. Data tools: 6 read-only donation / transaction / donor tools behind OPA + raisin-api, placeholder-resolved arguments | done 2026-09-07 |
+| 8. Chat console `/ui` on fundraising-api (user picker, assistant/story, model override, control-plane panel per reply) | done 2026-09-06 |
+| 9. Data tools: 6 read-only donation / transaction / donor tools behind OPA + fundraising-api, placeholder-resolved arguments | done 2026-09-07 |
 | 10. Security remediation (CSO re-audit 2026-09-07): F12 role gate + service token on `/api/*`, F1 trace content minimized, F3 OPA token auth + no host port, F2 `/donate` integrity, F5/F6 response envelope behind `DEBUG_PANEL`; `opa test` 22/22, `make test-tools` all PASS | done 2026-09-07 |
 | 11. Phoenix 20.11.0 (working dir moved off the image's venv path), `make trace` step-by-step trace dump, F14 gateway span content closed test-first (LiteLLM `turn_off_message_logging` + collector drop/delete processors, `make test` check 4) | done 2026-09-12 |
 
@@ -60,7 +60,7 @@ Known limitations (honest, on purpose):
 Review + findings: `../03_AI_Control_Plane_Security_Review.md` (re-audit section) and `.gstack/security-reports/`.
 Closed in this round (each with a test in `scripts/test_tools.py` or `scripts/test_traces.py`):
 
-- **F12 (HIGH, new)** `raisin-api /api/*` now requires the runtime's `X-Service-Token` AND checks the JWT role against the
+- **F12 (HIGH, new)** `fundraising-api /api/*` now requires the runtime's `X-Service-Token` AND checks the JWT role against the
   same `policy/data/roles.json` OPA uses (endpoint → backing tool → role). Donor/Participant tokens get 403 on finance
   routes; end users cannot reach tool-backing routes at all. OPA remains the decision point for the LLM path; the API
   re-checks it (defense in depth, two layers that must both be wrong).
@@ -87,7 +87,7 @@ truncation), F9 (prompts approved globally), F10 (identity stand-in, known limit
 ## Data tools (donations, transactions, donors)
 
 The assistant reaches the system of record only through narrow tools. Every call: OPA tool-stage decision
-(`policy.decide`, ABAC on the resource's owning tenant, obtained from a service-token PIP) → `raisin-api` with the
+(`policy.decide`, ABAC on the resource's owning tenant, obtained from a service-token PIP) → `fundraising-api` with the
 caller's JWT (re-filters by tenant in SQL) → minimized JSON. The tenant is never a tool argument.
 
 | Tool | Role | Returns | Notes |
@@ -97,7 +97,7 @@ caller's JWT (re-filters by tenant in SQL) → minimized JSON. The tenant is nev
 | `list_transactions(result?, decline_category?, min_amount?, max_amount?, limit?)` | Finance | rows, newest first, ≤ 50 | tenant from JWT only |
 | `get_tenant_donation_summary()` | Finance | counts, totals, declines by category | |
 | `get_donor_profile(donor_id)` | Finance | donor id, donation count, total approved, last status | no name, email or phone in any form |
-| `find_donor(email)` | Finance | same as profile | the model passes `<EMAIL_ADDRESS_1>`; the runtime resolves it in-process; `raisin-api` takes the email in a POST body so it never lands in an `http.url` span attribute |
+| `find_donor(email)` | Finance | same as profile | the model passes `<EMAIL_ADDRESS_1>`; the runtime resolves it in-process; `fundraising-api` takes the email in a POST body so it never lands in an `http.url` span attribute |
 | `get_my_donations()` | Donor | the caller's own donations | resource owner = JWT subject |
 | `resend_receipt` | Finance | pending approval id, not a result | the one `action_risk=high` write action (Phase 10): OPA always denies the tool call with `requires_approval` and the runtime opens an approval request instead of running it; see [opa.md](docs/containers/opa.md#risk-classification). Six more `low`/`medium` controlled actions (Phase 14 -- `restart_worker`, `clear_failed_job`, `block_ip_temporarily`, `create_incident`, `send_notification`, `collect_diagnostic_bundle`) auto-execute instead, see [agent-runtime.md](docs/containers/agent-runtime.md#tool-layer-toolspy) |
 
@@ -125,12 +125,12 @@ container (`docs/containers/`). Diagrams 07 to 13 in `../diagrams/` describe wha
 
 ### Interactive data-flow diagram
 
-[![Containers and data flow](docs/diagrams/09-container-data-flow-preview.png)](https://pashaking.github.io/raisin-agent/09-container-data-flow.html)
+[![Containers and data flow](docs/diagrams/09-container-data-flow-preview.png)](https://pashaking.github.io/fundraising-agent/09-container-data-flow.html)
 
-**[Open the live, animated version](https://pashaking.github.io/raisin-agent/09-container-data-flow.html)** (GitHub Pages, served from
+**[Open the live, animated version](https://pashaking.github.io/fundraising-agent/09-container-data-flow.html)** (GitHub Pages, served from
 `docs/`). Pick a scenario to show only the containers one kind of request touches, toggle individual flows, click a box for its
 purpose, ports and connections. The slide-style walkthrough is at
-[06-poc-presentation.html](https://pashaking.github.io/raisin-agent/06-poc-presentation.html). Source for both lives in
+[06-poc-presentation.html](https://pashaking.github.io/fundraising-agent/06-poc-presentation.html). Source for both lives in
 [docs/](docs/); GitHub shows `.html` files as code, so the links above go through Pages. Regenerate the diagram with
 `python3 docs/diagrams/container_data_flow.py`, and the preview image with a full-page screenshot at 1280px.
 
@@ -154,7 +154,7 @@ make demo S="1 3"                # subset
 ```
 
 UIs: Jaeger http://localhost:16686 · Phoenix http://localhost:16006 · LiteLLM http://localhost:14000 ·
-raisin-api http://localhost:18080/docs · OPA is internal only (`make opa-query`, `make opa-data`)
+fundraising-api http://localhost:18080/docs · OPA is internal only (`make opa-query`, `make opa-data`)
 
 Debug switches in `.env` (both default off in code and compose): `DEBUG_PANEL=on` shows policy decisions, tool calls and
 guardrail verdicts in every reply (the console needs it); `DEBUG_TRACE_CONTENT=on` puts full prompts and tool results into
@@ -164,7 +164,7 @@ LLM spans for Phoenix playback. Keep both off outside local development.
 
 | # | Who asks what | What the trace shows |
 |---|---|---|
-| 0 | Public `POST /donate` with the canary donor's email and phone (server assigns the donation id; client ids are rejected) | `raisin-api → payment-gateway`, declined 51, zero `gen_ai.*` spans, no canary string anywhere |
+| 0 | Public `POST /donate` with the canary donor's email and phone (server assigns the donation id; client ids are rejected) | `fundraising-api → payment-gateway`, declined 51, zero `gen_ai.*` spans, no canary string anywhere |
 | 1 | Finance A: why was 873928 declined | model ALLOW → `guardrail.input` → `chat` → `execute_tool get_donation` → PIP → `policy.decide` ALLOW → `/api/donations/873928` (with its transaction analysis) → `chat` → `guardrail.output` |
 | 2 | Donor B: same question | model ALLOW with `policy.tools.withheld=[get_transaction_analysis, get_donation, list_transactions, get_tenant_donation_summary, get_donor_profile, find_donor, resend_receipt]`; only `search_kb` and `get_my_donations` offered; Donor output passes through the anonymizer |
 | 3 | Finance B: same question (tenant A's donation) | tool offered, model calls `get_donation`, `policy.decide` DENY `tenant_mismatch` (red span, SIEM event); the model gets `not_found`; with `DEBUG_PANEL=off` the response is indistinguishable from a missing id |
@@ -181,7 +181,7 @@ Host ports are offset because another local stack already binds 5432 / 8080 / 81
 
 | Service | Host | Service | Host |
 |---|---|---|---|
-| postgres | 15432 | raisin-api | 18080 |
+| postgres | 15432 | fundraising-api | 18080 |
 | otel-collector OTLP | 14317 / 14318 | agent-runtime | 18090 |
 | jaeger UI | 16686 | payment-gateway | 18070 |
 | phoenix UI + OTLP | 16006 | opa | internal only (token auth) |
@@ -209,9 +209,9 @@ policy/                      authz.rego (+tests), system_authz.rego (OPA API aut
 services/guardrails/        app.py (scan API, layer spans: nemo, classifier, moderation), rules.py (opt-in regex filters), Dockerfile
 services/nemo-guardrails/   Dockerfile + config/aicp/{config.yml,prompts.yml} (NeMo rails config, mounted read-only)
 observability/               otel-collector.yaml (fan-out + SIEM filter), siem/security-events.jsonl
-postgres/initdb/             creates litellm, raisin, kb databases (+ pgvector)
+postgres/initdb/             creates litellm, fundraising, kb databases (+ pgvector)
 services/common/             otel_setup.py, base requirements
-services/raisin-api/         identity route + JWKS, /donate, /assistant, /story, system-of-record API (donations, transactions, donors, summary, me), internal PIPs
+services/fundraising-api/         identity route + JWKS, /donate, /assistant, /story, system-of-record API (donations, transactions, donors, summary, me), internal PIPs
 services/agent-runtime/      tool loop, policy PEP, guardrail clients, tools (12 handlers, placeholder resolution), memory.py (agent memory), approvals.py (human approval queue), RAG, gate.py
 services/payment-gateway/    stub
 services/seed/               schema, fixtures, docs/, seed.py (all | registry | flip | reset | index)

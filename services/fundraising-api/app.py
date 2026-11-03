@@ -1,4 +1,4 @@
-"""raisin-api: identity route (JWT + JWKS), application API, and system-of-record API.
+"""fundraising-api: identity route (JWT + JWKS), application API, and system-of-record API.
 
 Diagram-01 boxes it covers: Identity (Entra ID stand-in), Application APIs, Backend services + RDS.
 The payment path (/donate -> payment-gateway) never touches the AI path (/assistant, /story -> agent-runtime).
@@ -21,15 +21,15 @@ import db
 from keys import load_or_generate
 from otel_setup import current_trace_id, init_tracing, instrument_fastapi
 
-tracer = init_tracing("raisin-api")
-app = FastAPI(title="raisin-api")
+tracer = init_tracing("fundraising-api")
+app = FastAPI(title="fundraising-api")
 instrument_fastapi(app)
 
 PRIV_PEM, PUB_PEM, JWKS, KID = load_or_generate()
 RUNTIME_URL = os.environ["AGENT_RUNTIME_URL"].rstrip("/")
 PAYGW_URL = os.environ["PAYMENT_GATEWAY_URL"].rstrip("/")
 SERVICE_TOKEN = os.environ["RUNTIME_SERVICE_TOKEN"]
-ISSUER = "raisin-api"
+ISSUER = "fundraising-api"
 AUDIENCE = "aicp"
 
 DECLINE_CATEGORY = {"51": "insufficient_funds", "05": "do_not_honor", "14": "invalid_card", "54": "expired_card",

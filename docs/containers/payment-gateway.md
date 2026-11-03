@@ -15,25 +15,25 @@ asserted rather than asserted-in-prose. Design box: **Payment gateway (Stripe / 
 
 `POST /charge {amount, currency, payment_token}` → `{result, decline_code, gateway_ref}`.
 Tokens starting with `tok_decline` decline with issuer code `51` (insufficient funds); anything else approves.
-The payload is already minimized by `raisin-api`: no donor fields ever reach this service.
+The payload is already minimized by `fundraising-api`: no donor fields ever reach this service.
 
 ## Spans
 
 `POST /charge` with `payment.result`, `payment.amount`, `payment.currency`, `payment.decline_code`. Never a `gen_ai.*`
-attribute. `scripts/test_traces.py` asserts: at least one `raisin-api`-rooted trace touches this service, at least one has
+attribute. `scripts/test_traces.py` asserts: at least one `fundraising-api`-rooted trace touches this service, at least one has
 `gen_ai.*`, none has both.
 
 ## When it is down
 
-`/donate` returns 500 (`raisin-api` calls `raise_for_status()` on the charge). The AI path is unaffected, which is itself
-part of the point: the two paths share `raisin-api` and `postgres` but nothing else.
+`/donate` returns 500 (`fundraising-api` calls `raise_for_status()` on the charge). The AI path is unaffected, which is itself
+part of the point: the two paths share `fundraising-api` and `postgres` but nothing else.
 
 ## Success example
 
 Scenario 0, trace `065e3c6954bc51f83a4e2d16c44a7f43`:
 
 ```
-raisin-api       POST /donate      tenant_id=tenant-a  donation.id=900015  payment.result=declined
+fundraising-api       POST /donate      tenant_id=tenant-a  donation.id=900015  payment.result=declined
  payment-gateway  POST /charge    12 ms  payment.result=declined  payment.decline_code=51
 ```
 
@@ -43,9 +43,9 @@ The canary donor's email and phone were in the request body and are in zero span
 ## Failure example
 
 There is no failure mode inside the stub itself beyond being unreachable. The failure it guards against is architectural:
-if a future change made `raisin-api` call the runtime from inside `/donate`, the PCI-scope assertion in `make test` would
+if a future change made `fundraising-api` call the runtime from inside `/donate`, the PCI-scope assertion in `make test` would
 fail on the first `make demo` because one trace would contain both `payment-gateway` and `gen_ai.*`.
 
 ## Related
 
-- [raisin-api.md](raisin-api.md) (`/donate`), [../05-observability-reference.md](../05-observability-reference.md#assertions-that-run-against-traces-make-test)
+- [fundraising-api.md](fundraising-api.md) (`/donate`), [../05-observability-reference.md](../05-observability-reference.md#assertions-that-run-against-traces-make-test)

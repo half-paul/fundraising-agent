@@ -2,7 +2,7 @@
 
 One trace per request across every container. This page lists what each service emits and how the collector routes it.
 Verified against `services/common/otel_setup.py`, `services/agent-runtime/*.py`, `services/guardrails/app.py`,
-`services/raisin-api/app.py`, `observability/otel-collector.yaml` on 2026-09-07; litellm attributes and the step-by-step table against live trace `0b3bab982fb126ad83702a2fc2fe0bcd` on 2026-09-12.
+`services/fundraising-api/app.py`, `observability/otel-collector.yaml` on 2026-09-07; litellm attributes and the step-by-step table against live trace `0b3bab982fb126ad83702a2fc2fe0bcd` on 2026-09-12.
 
 ![Observability pipeline](../../diagrams/12-poc-observability-pipeline.png)
 
@@ -13,12 +13,12 @@ Source: `../../diagrams/12-poc-observability-pipeline.mmd`.
 - Every Python service calls `init_tracing(service_name)`: OTLP/HTTP exporter to `otel-collector:4318/v1/traces`,
   `BatchSpanProcessor`, resource attributes `service.name` and `openinference.project.name=ai-control-plane-poc`.
 - `HTTPXClientInstrumentor` is on in every service, so outbound `httpx` calls (OpenAI SDK → LiteLLM, runtime → OPA /
-  guardrails / raisin-api / Presidio) carry `traceparent`. Header and body capture stay off.
+  guardrails / fundraising-api / Presidio) carry `traceparent`. Header and body capture stay off.
 - `FastAPIInstrumentor` is on with `health,healthz` excluded, which produces the `POST /assistant`, `POST /run`,
   `GET /api/...` server spans and their `http receive` / `http send` children.
 - LiteLLM exports through its own `otel` callback; OPA through `distributed_tracing` (gRPC to the collector, 100 % sampled);
   NeMo Guardrails through `opentelemetry-instrument` auto-instrumentation.
-- `trace_id` is returned to the caller in the JSON body and in the `X-Trace-Id` response header from `raisin-api`.
+- `trace_id` is returned to the caller in the JSON body and in the `X-Trace-Id` response header from `fundraising-api`.
 
 ## Span catalogue
 
@@ -62,7 +62,7 @@ Under `guardrail.nemo` you will find `nemo-guardrails` FastAPI spans and, nested
 `Received Proxy Server Request` → `litellm_request` with `gen_ai.usage.*` for the judge call (typically ~470 input tokens,
 1 output token: "Yes" or "No").
 
-### raisin-api
+### fundraising-api
 
 | Span | Attributes |
 |---|---|
@@ -113,7 +113,7 @@ The `trace_id` is in the API response body, in the `X-Trace-Id` header, and in `
 
 | # | Container | Span | Input you can read | Output you can read | Gate |
 |---|---|---|---|---|---|
-| 1 | raisin-api | `POST /assistant` | no body capture; `enduser.id`, `tenant_id`, `role` from the JWT | `http.status_code`; the answer only in the caller's response | none |
+| 1 | fundraising-api | `POST /assistant` | no body capture; `enduser.id`, `tenant_id`, `role` from the JWT | `http.status_code`; the answer only in the caller's response | none |
 | 2 | agent-runtime | `assistant.run` | `gen_ai.prompt.name` (which system prompt) | `exception` event on 4xx/5xx | none |
 | 3 | agent-runtime → opa | `policy.decide` → `POST /v1/data/{path...}` | `policy.input.*` scalars; the full OPA input JSON (subject, stage, tool, resource) in the decision log: `docker compose logs opa \| grep <policy.decision_id>` | `policy.result`, `policy.reason`, `policy.tools.allowed` / `withheld`, `policy.registry_revision`; full result in the same log line | none |
 | 4 | agent-runtime → presidio-analyzer | `guardrail.presidio.analyze` | not recorded (Presidio emits no spans) | `guardrail.entities` as `TYPE:count`, never values; `guardrail.placeholders` on the parent | none |
@@ -122,7 +122,7 @@ The `trace_id` is in the API response body, in the `X-Trace-Id` header, and in `
 | 7 | agent-runtime | `chat <model>` (kind LLM) | `input.value`: the exact message array sent (system prompt, placeholdered question, earlier tool results) | `output.value`: requested tool calls or the final text; `gen_ai.tool.calls`, `gen_ai.usage.*` | `DEBUG_TRACE_CONTENT`; off = roles, counts, sha256 |
 | 8 | litellm | `Received Proxy Server Request` → `litellm_request` | which virtual key (`metadata.user_api_key_alias`), model group and provider model | `gen_ai.usage.*`, `gen_ai.cost.*`, `gen_ai.response.model`; no text | gateway exports no content (F14 fixed) |
 | 9 | agent-runtime | `execute_tool <name>` (kind TOOL) | `tool.parameters` (model-supplied args) | `tool.result` (`ok` / `denied` / `not_found` / `bad_args`), `tool.deny_reason`, `tool.result.fields` (names only, never values) | args: `DEBUG_TRACE_CONTENT`; result values: never |
-| 10 | agent-runtime → raisin-api | `pip.<kind>_tenant` → `GET /internal/.../tenant`; `GET /api/...` | `<kind>.id`, `authz.tool` | `authz.result`, `tool.result.fields`, `db.sql.table`, `db.rows` | none |
+| 10 | agent-runtime → fundraising-api | `pip.<kind>_tenant` → `GET /internal/.../tenant`; `GET /api/...` | `<kind>.id`, `authz.tool` | `authz.result`, `tool.result.fields`, `db.sql.table`, `db.rows` | none |
 | 11 | agent-runtime | `retrieve search_kb` (kind RETRIEVER) + `embeddings` | `retrieval.filter.tenants` / `classifications` | `retrieval.documents` = `doc#chunk:score`, never chunk text | none |
 | 12 | agent-runtime → guardrails → nemo / litellm | `guardrail.output` → `POST /v1/scan/output` → `guardrail.nemo`, `guardrail.moderation` | the draft answer is on no span; it is the runtime's `output.value` of the last `chat` span (7) | verdicts, scores, `guardrail.moderation.categories`; `guardrail.block` event with entities / reasons | none |
 | 13 | otel-collector | (no spans of its own) | everything above over OTLP | Jaeger: every span and attribute. Phoenix: every span; input / output panes only for OpenInference kinds (7, 9, 11). SIEM file: deny / block / flagged spans only | drops `raw_gen_ai_request`, deletes any message-shaped attribute (F14 backstop), SIEM keep-only filter |
@@ -181,7 +181,7 @@ from Jaeger to correlate.
 
 `scripts/test_traces.py`, against the Jaeger API, lookback 6 h:
 
-1. **PCI scope, non-vacuous**: among traces rooted at `raisin-api`, ≥ 1 touches `payment-gateway`, ≥ 1 has a `gen_ai.*`
+1. **PCI scope, non-vacuous**: among traces rooted at `fundraising-api`, ≥ 1 touches `payment-gateway`, ≥ 1 has a `gen_ai.*`
    attribute, 0 have both.
 2. **PII canary**: `canary.donor@pii-canary.test` and `604-555-0199` appear in no span attribute or event of any service.
 3. **Trace content minimized**: `input.value` / `output.value` / `tool.parameters` on agent-runtime spans carry

@@ -1,7 +1,7 @@
 """Tool layer: narrow, policy-scoped functions. The runtime holds no database credentials for the
-system of record; donation, transaction and donor facts come from raisin-api, already minimized.
+system of record; donation, transaction and donor facts come from fundraising-api, already minimized.
 
-Every tool: OPA tool-stage decision (ABAC on the resource's owning tenant) -> raisin-api with the caller's JWT
+Every tool: OPA tool-stage decision (ABAC on the resource's owning tenant) -> fundraising-api with the caller's JWT
 (re-checks tenant) -> minimized result. Tenant is never a tool argument. For by-id tools, a missing id and a
 foreign-tenant id look identical to the model (`not_found`); the OPA deny is still recorded in the trace/SIEM.
 Placeholder tokens the input guardrail produced (<EMAIL_ADDRESS_1>) are resolved here, so the model never
@@ -240,7 +240,7 @@ def _pip_tenant(kind: str, row_id: int) -> str | None:
         span.set_attribute("openinference.span.kind", "CHAIN")
         span.set_attribute(f"{kind}.id", row_id)
         with httpx.Client(timeout=10) as c:
-            r = c.get(f"{config.RAISIN_API_URL}/internal/{kind}s/{row_id}/tenant", headers={"X-Service-Token": config.RUNTIME_SERVICE_TOKEN})
+            r = c.get(f"{config.FUNDRAISING_API_URL}/internal/{kind}s/{row_id}/tenant", headers={"X-Service-Token": config.RUNTIME_SERVICE_TOKEN})
         if r.status_code == 404:
             return None
         r.raise_for_status()
@@ -259,7 +259,7 @@ def _decide(name: str, ctx: dict, resource_tenant: str, span) -> bool:
 
 def _api(ctx: dict, method: str, path: str, *, params: dict | None = None, body: dict | None = None) -> tuple[int, dict]:
     with httpx.Client(timeout=10) as c:
-        r = c.request(method, f"{config.RAISIN_API_URL}{path}", params=params, json=body,
+        r = c.request(method, f"{config.FUNDRAISING_API_URL}{path}", params=params, json=body,
                       headers={"Authorization": ctx["authorization"], "X-Service-Token": config.RUNTIME_SERVICE_TOKEN})
     try:
         payload = r.json()
@@ -296,7 +296,7 @@ def _params(args: dict, keys: tuple[str, ...]) -> dict:
 
 # ---------- tool handlers ----------
 def _by_id(name: str, kind: str, id_key: str, path: str, args: dict, ctx: dict, span) -> dict:
-    """Shared path for get_transaction_analysis / get_donation / get_donor_profile: PIP -> OPA (ABAC) -> raisin-api.
+    """Shared path for get_transaction_analysis / get_donation / get_donor_profile: PIP -> OPA (ABAC) -> fundraising-api.
     Missing, foreign and backend-denied ids all come back as not_found; the deny itself is still in the trace (and in the
     decisions list, which reaches the end user only with DEBUG_PANEL=on)."""
     row_id = _int(args, id_key)
@@ -311,12 +311,12 @@ def _by_id(name: str, kind: str, id_key: str, path: str, args: dict, ctx: dict, 
         span.set_attribute("tool.result", "not_found")
         return NOT_FOUND
     if st != 200:
-        raise RuntimeError(f"raisin-api {st}")
+        raise RuntimeError(f"fundraising-api {st}")
     return _ok(span, out)
 
 
 def _tenant_scoped(name: str, method: str, path: str, ctx: dict, span, *, params: dict | None = None, body: dict | None = None) -> dict:
-    """Shared path for list/summary/self tools: resource tenant is the caller's own; raisin-api filters in SQL."""
+    """Shared path for list/summary/self tools: resource tenant is the caller's own; fundraising-api filters in SQL."""
     if not _decide(name, ctx, ctx["claims"]["tenant_id"], span):
         return {**DENIED, "reason": ctx["decisions"][-1]["reason"]}
     st, out = _api(ctx, method, path, params=params, body=body)
@@ -327,7 +327,7 @@ def _tenant_scoped(name: str, method: str, path: str, ctx: dict, span, *, params
         span.set_attribute("tool.result", "bad_args")
         return {"error": "bad_args", "message": str(out.get("detail", "invalid arguments"))[:200]}
     if st != 200:
-        raise RuntimeError(f"raisin-api {st}")
+        raise RuntimeError(f"fundraising-api {st}")
     return _ok(span, out)
 
 
@@ -414,7 +414,7 @@ def _call_resend_receipt(ctx: dict, donation_id: int, span) -> dict:
         span.set_attribute("tool.result", "not_found")
         return NOT_FOUND
     if st != 200:
-        raise RuntimeError(f"raisin-api {st}")
+        raise RuntimeError(f"fundraising-api {st}")
     return _ok(span, out)
 
 
@@ -453,7 +453,7 @@ def _resend_receipt(args: dict, ctx: dict, span) -> dict:
 def execute_approved(tool: str, args: dict, ctx: dict) -> dict:
     """Called only by the /approvals decide endpoint, after a fresh OPA approval_execute allow -- runs the exact
     stored tool/args, with no model or tool loop involved. ctx needs only 'authorization' (the approver's own JWT;
-    raisin-api re-checks role+tenant via its own authorize(), and approval_execute already confirmed the resource
+    fundraising-api re-checks role+tenant via its own authorize(), and approval_execute already confirmed the resource
     tenant equals the approver's own tenant)."""
     with tracer.start_as_current_span(f"execute_approved {tool}") as span:
         span.set_attribute("gen_ai.tool.name", tool)

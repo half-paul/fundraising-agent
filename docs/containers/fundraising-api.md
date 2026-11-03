@@ -1,22 +1,22 @@
-# raisin-api
+# fundraising-api
 
 The application. Plays three roles from the design (diagram 01): **Identity** (Entra ID stand-in), **Application APIs**
 (the public donation form and the two AI entry points) and **Backend + system of record** (donations, transactions, donors,
-the AI registry table). It is the only service that talks to the `raisin` database and the only service end users talk to.
+the AI registry table). It is the only service that talks to the `fundraising` database and the only service end users talk to.
 
 | | |
 |---|---|
-| Build | `services/raisin-api/Dockerfile` (FastAPI, uvicorn, psycopg, PyJWT, cryptography) |
+| Build | `services/fundraising-api/Dockerfile` (FastAPI, uvicorn, psycopg, PyJWT, cryptography) |
 | Port | 18080 → 8080 |
 | Depends on | `postgres` healthy, `payment-gateway` started |
 | Health | `GET /health` → `{"ok": true}` |
-| Code | `services/raisin-api/app.py` (~800 lines), `db.py`, `keys.py`, `ui/index.html` |
+| Code | `services/fundraising-api/app.py` (~800 lines), `db.py`, `keys.py`, `ui/index.html` |
 
 ## Configuration
 
 | Env | Purpose |
 |---|---|
-| `RAISIN_DATABASE_URL` | `postgresql://poc:...@postgres:5432/raisin` |
+| `FUNDRAISING_DATABASE_URL` | `postgresql://poc:...@postgres:5432/fundraising` |
 | `AGENT_RUNTIME_URL` | `http://agent-runtime:8090`, target of `/assistant` and `/story` forwards |
 | `PAYMENT_GATEWAY_URL` | `http://payment-gateway:8070` |
 | `RUNTIME_SERVICE_TOKEN` | shared secret; required on `/api/*` and `/internal/*` (`X-Service-Token`) |
@@ -29,7 +29,7 @@ the AI registry table). It is the only service that talks to the `raisin` databa
 
 | Endpoint | Auth | Behaviour |
 |---|---|---|
-| `POST /auth/token {user}` | none (identity stand-in) | looks the email up in `users`, mints RS256 JWT: `iss=raisin-api`, `aud=aicp`, `sub=email`, `tenant_id`, `role`, `exp=+900s`, `jti` |
+| `POST /auth/token {user}` | none (identity stand-in) | looks the email up in `users`, mints RS256 JWT: `iss=fundraising-api`, `aud=aicp`, `sub=email`, `tenant_id`, `role`, `exp=+900s`, `jti` |
 | `GET /auth/users` | none (identity stand-in) | seeded users for the console's identity picker |
 | `GET /.well-known/jwks.json` | none | public key set the runtime verifies against |
 
@@ -116,14 +116,14 @@ FastAPI server spans per route; `db.query` per statement; `enduser.id` / `tenant
 ## When it is down
 
 Everything stops: no tokens, no `/donate`, no AI entry point, no tool backend. The runtime's tool calls to `/api/*` raise
-`RuntimeError("raisin-api ...")` and surface as 502 `gateway_error`; the PIP call failing has the same effect.
+`RuntimeError("fundraising-api ...")` and surface as 502 `gateway_error`; the PIP call failing has the same effect.
 
 ## Success example
 
 Scenario 1 backend call, visible in trace `71343ded243c0f5bda29fde82d97bf74`:
 
 ```
-raisin-api  GET /api/donations/{id}   authz.tool=get_donation  authz.result=allow  enduser.id=finance.a@charity-a.test  tenant_id=tenant-a  role=Finance
+fundraising-api  GET /api/donations/{id}   authz.tool=get_donation  authz.result=allow  enduser.id=finance.a@charity-a.test  tenant_id=tenant-a  role=Finance
   db.query  (donations WHERE id = 873928 AND tenant_id = 'tenant-a')
   db.query  (transactions WHERE donation_id = 873928 AND tenant_id = 'tenant-a')
   tool.result.fields = [amount, currency, donor_id, id, status, transactions]

@@ -23,8 +23,8 @@ TOKEN=$(curl -s -X POST localhost:18080/auth/token -H 'Content-Type: application
 echo $TOKEN | cut -c1-40
 ```
 
-You get an RS256 JWT issued by `raisin-api` with claims `tenant_id=tenant-a`, `role=Finance`, 15-minute expiry. In
-production this comes from Entra ID; here `raisin-api` stands in and publishes a JWKS the runtime verifies against.
+You get an RS256 JWT issued by `fundraising-api` with claims `tenant_id=tenant-a`, `role=Finance`, 15-minute expiry. In
+production this comes from Entra ID; here `fundraising-api` stands in and publishes a JWKS the runtime verifies against.
 
 ## Step 2: ask the assistant a question about your own tenant's data
 
@@ -58,7 +58,7 @@ Real output (2026-09-07, `DEBUG_PANEL=on`):
 What happened, in order: OPA allowed the model and handed the runtime 7 tool schemas (2 withheld for this role). Presidio
 found no PII in the question. The guardrails service (NeMo judge + injection classifier) passed it. The model asked for
 `get_donation(873928)`. The runtime looked up the donation's owning tenant, asked OPA again (tool stage, tenant match),
-called `raisin-api` with your JWT and the runtime's service token, got a minimized record back, and the model wrote the
+called `fundraising-api` with your JWT and the runtime's service token, got a minimized record back, and the model wrote the
 answer. Presidio and the guardrails output scan passed the draft.
 
 ## Step 3: open the trace
@@ -70,7 +70,7 @@ open http://localhost:16686/trace/71343ded243c0f5bda29fde82d97bf74   # replace w
 The waterfall for that request (noise spans removed) looked like this:
 
 ```
-raisin-api      POST /assistant
+fundraising-api      POST /assistant
   agent-runtime   assistant.run
     policy.decide                 stage=model  allow  tools.allowed=[7]  tools.withheld=[2]
     guardrail.input               pass  placeholders=0
@@ -81,9 +81,9 @@ raisin-api      POST /assistant
     chat gpt-4o-mini              594 in / 18 out  tool.calls=[get_donation]
       litellm  Received Proxy Server Request ... litellm_request
     execute_tool get_donation     tool.result=ok
-      pip.donation_tenant         donation.id=873928   (raisin-api db.query)
+      pip.donation_tenant         donation.id=873928   (fundraising-api db.query)
       policy.decide               stage=tool  allow
-      (raisin-api GET /api/donations/873928: db.query x2)
+      (fundraising-api GET /api/donations/873928: db.query x2)
     chat gpt-4o-mini              719 in / 12 out
     guardrail.output              pass
       guardrail.presidio.analyze  entities=[]

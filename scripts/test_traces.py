@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Trace assertions against Jaeger. Run after `make demo`.
 
-  1. PCI scope (non-vacuous): among traces rooted at raisin-api, >=1 touches payment-gateway, >=1 has a
+  1. PCI scope (non-vacuous): among traces rooted at fundraising-api, >=1 touches payment-gateway, >=1 has a
      gen_ai.* span, and none has both.
   2. PII canary: no span attribute/event anywhere contains the canary email or phone.
   2b. Trace content minimized: agent-runtime input.value / output.value / tool.parameters carry sha256 + structure only
@@ -22,7 +22,7 @@ import urllib.request
 
 JAEGER = "http://localhost:16686"
 CANARY = ["canary.donor@pii-canary.test", "604-555-0199"]
-SERVICES = ["raisin-api", "agent-runtime", "litellm", "opa", "payment-gateway", "seed"]
+SERVICES = ["fundraising-api", "agent-runtime", "litellm", "opa", "payment-gateway", "seed"]
 
 
 def get(url):
@@ -52,11 +52,11 @@ def touches(t, service):
 
 
 def test_pci_scope() -> bool:
-    ts = [t for t in traces_for("raisin-api") if root_service(t) == "raisin-api"]
+    ts = [t for t in traces_for("fundraising-api") if root_service(t) == "fundraising-api"]
     pay = [t for t in ts if touches(t, "payment-gateway")]
     ai = [t for t in ts if has_gen_ai(t)]
     both = [t for t in ts if touches(t, "payment-gateway") and has_gen_ai(t)]
-    print(f"PCI: raisin-api-rooted traces={len(ts)} payment={len(pay)} ai={len(ai)} both={len(both)}")
+    print(f"PCI: fundraising-api-rooted traces={len(ts)} payment={len(pay)} ai={len(ai)} both={len(both)}")
     ok = len(pay) >= 1 and len(ai) >= 1 and len(both) == 0
     print("PCI scope:", "PASS" if ok else "FAIL")
     return ok

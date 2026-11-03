@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Data-tool assertions against the running stack. Run after `make seed`.
 
-  Part A (deterministic, no LLM): raisin-api system-of-record endpoints the runtime tools call.
+  Part A (deterministic, no LLM): fundraising-api system-of-record endpoints the runtime tools call.
      Tenant filter in SQL, uniform 404 for missing-or-foreign ids, minimized fields, masked donor email,
      donor self-lookup by JWT subject, PIP for donations and donors.
   Rails (LLM judge): legitimate data questions pass the NeMo self-check input rail, attack phrases still block.
@@ -18,7 +18,7 @@ import urllib.request
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import demo  # noqa: E402
 
-RAISIN = demo.RAISIN
+FUNDRAISING = demo.FUNDRAISING
 CANARY_EMAIL = demo.CANARY_EMAIL
 FIN_A, FIN_B, DONOR_B = "finance.a@charity-a.test", "finance.b@charity-b.test", "donor.b@example.test"
 # Looked up by email through the LLM path. Must have a real TLD: Presidio validates TLDs and never placeholders .test
@@ -41,7 +41,7 @@ def get(path: str, tok: str | None = None, headers: dict | None = None, body: di
         svc = path.startswith("/api/")
     if svc and "X-Service-Token" not in hdrs:
         hdrs["X-Service-Token"] = env("RUNTIME_SERVICE_TOKEN")
-    req = urllib.request.Request(f"{RAISIN}{path}", data=data, method="POST" if body is not None else "GET", headers=hdrs)
+    req = urllib.request.Request(f"{FUNDRAISING}{path}", data=data, method="POST" if body is not None else "GET", headers=hdrs)
     if tok:
         req.add_header("Authorization", f"Bearer {tok}")
     try:
@@ -218,7 +218,7 @@ def part_a():
     st, b = get("/api/me/donations", ta)
     check("me/donations Finance role -> 403 (Donor-only endpoint)", st == 403, f"{st} {b}")
 
-    # --- F12: role enforced in raisin-api, and the API is reachable only through the runtime (service token) ---
+    # --- F12: role enforced in fundraising-api, and the API is reachable only through the runtime (service token) ---
     for path, who, tok in (("/api/transactions?limit=5", "Donor", td), ("/api/summary", "Donor", td), ("/api/donations/991204", "Donor", td),
                            ("/api/transactions/991204/analysis", "Donor", td), ("/api/donors/2/profile", "Donor", td),
                            ("/api/campaigns/1", "Donor", td), ("/api/transaction-search", "Donor", td), ("/api/fraud-signals", "Donor", td),
@@ -291,7 +291,7 @@ def part_a():
     st, b = donate({"tenant_id": "tenant-a", "amount": 5.0, "currency": "CAD", "payment_token": "tok_ok",
                     "donor": {"email": CANARY_EMAIL, "phone": "604-555-9999", "name": "Impostor"}})
     import subprocess as _sp
-    row = _sp.run(["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "poc", "-d", "raisin", "-tA", "-c",
+    row = _sp.run(["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "poc", "-d", "fundraising", "-tA", "-c",
                    f"select phone || '|' || first_name || ' ' || last_name from donors where tenant_id='tenant-a' and email='{CANARY_EMAIL}'"], capture_output=True, text=True).stdout.strip()
     check("donate: existing donor contact fields never overwritten by a public form post", st == 200 and row == f"{demo.CANARY_PHONE}|Canary Donor", f"{st} row now {row!r}")
 

@@ -9,7 +9,7 @@ help:
 	@echo "make demo          run scenarios 0-9 and print trace links   (make demo S='1 3' for a subset)"
 	@echo "make trace TRACE_ID=<id>   print one trace as a step-by-step tree with the prompt/tool/policy attributes per hop (ARGS=--full)"
 	@echo "make test          agent hard-limit + memory-validation unit tests (no stack) + opa unit tests + PCI-scope + PII-canary + gateway-content trace assertions + data-tool API + approval-workflow assertions (no LLM)"
-	@echo "make test-tools    data tools end to end: raisin-api endpoints, NeMo rail regression, runtime tool loop (calls gpt-4o-mini)"
+	@echo "make test-tools    data tools end to end: fundraising-api endpoints, NeMo rail regression, runtime tool loop (calls gpt-4o-mini)"
 	@echo "make evals         agent evaluation suite: 14 named scenarios (Phase 12) + metrics report; run with DEBUG_PANEL=on for full coverage"
 	@echo "make test-fail-closed   same plus stop/start of opa and guardrail services"
 	@echo "make registry-flip TOOL=get_donation APPROVED=false | make registry-reset"

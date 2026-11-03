@@ -2,7 +2,7 @@
 """Agent evaluation suite (Phase 12): a named scenario dataset against the running stack, plus the plan's
 own metrics computed from the debug panel.
 
-Maps the plan's 13 scenario categories (docs/raisin_agent_implementation_plan.md Phase 12) onto this system's
+Maps the plan's 13 scenario categories (docs/fundraising_agent_implementation_plan.md Phase 12) onto this system's
 actual domain (donations/donors/transactions, not campaigns/gateways): a category with no matching capability
 here (e.g. "gateway outage") is reframed as the closest in-domain equivalent rather than skipped, noted per
 scenario in `plan_category`. A 14th scenario, `approval_required_action`, was added once Phase 10 made a human
@@ -311,7 +311,7 @@ def run_memory_round_trip() -> dict:
 
 
 def metrics(results: list[dict]):
-    print("\n--- Metrics (docs/raisin_agent_implementation_plan.md Phase 12) ---")
+    print("\n--- Metrics (docs/fundraising_agent_implementation_plan.md Phase 12) ---")
     n = len(results)
     completion = sum(r["passed"] for r in results) / n * 100
     print(f"task completion %:          {completion:.0f}%  ({sum(r['passed'] for r in results)}/{n})")

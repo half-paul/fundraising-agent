@@ -1,7 +1,7 @@
 """Hardcoded fixtures. Three tenants + platform, six personas, seeded donations/transactions, canary donor,
 registry rows. Everything here is synthetic (.test domains, 555 phone)."""
 
-TENANTS = [("tenant-a", "Jack.org"), ("tenant-b", "Crohn's and Colitis Canada"), ("tenant-c", "PMCF"), ("platform", "Raisin platform")]
+TENANTS = [("tenant-a", "Jack.org"), ("tenant-b", "Crohn's and Colitis Canada"), ("tenant-c", "PMCF"), ("platform", "Fundraising platform")]
 
 USERS = [
     ("finance.a@charity-a.test", "tenant-a", "Finance"),

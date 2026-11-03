@@ -1,6 +1,6 @@
 """Payment gateway stub. Exists so `service.name=payment-gateway` appears in traces and the
 PCI-scope assertion (no gen_ai.* span in any trace that touches this service) is meaningful.
-Payload is already minimized by raisin-api: {amount, currency, payment_token}. No donor fields.
+Payload is already minimized by fundraising-api: {amount, currency, payment_token}. No donor fields.
 """
 from fastapi import FastAPI
 from opentelemetry import trace

@@ -34,8 +34,8 @@ product behind it, not a stub, so the system exercises real failure modes (model
 
 | Design box | Container(s) | What it decides |
 |---|---|---|
-| Identity | `raisin-api` (`/auth/token`, JWKS) | who the caller is: `sub`, `tenant_id`, `role` come from a signed JWT, never from the prompt |
-| Application APIs, backend, RDS | `raisin-api` (`/assistant`, `/story`, `/api/*`, `/internal/*`), `postgres` | forwards claims to the runtime; serves minimized, tenant-filtered records to tools; owns the registry table |
+| Identity | `fundraising-api` (`/auth/token`, JWKS) | who the caller is: `sub`, `tenant_id`, `role` come from a signed JWT, never from the prompt |
+| Application APIs, backend, RDS | `fundraising-api` (`/assistant`, `/story`, `/api/*`, `/internal/*`), `postgres` | forwards claims to the runtime; serves minimized, tenant-filtered records to tools; owns the registry table |
 | Payment gateway | `payment-gateway` | approves or declines; exists so the "never AI" boundary is measurable in traces |
 | AI Gateway | `litellm` + `agent-runtime` | LiteLLM: model routing, per-tenant virtual keys, budgets, one provider swap line. Runtime: the tool loop and the Policy Enforcement Point |
 | Policy Engine | `opa` | Policy Decision Point: model stage (which model, which tool schemas, which retrieval filter) and tool stage (per call, tenant of the resource must equal tenant of the caller) |
@@ -52,7 +52,7 @@ Retrieval carries the same idea: OPA returns a `retrieval_filter` (tenants + cla
 
 **2. Every tool call is authorized twice, on the resource's tenant.** The runtime first resolves the owning tenant of
 the requested id through a Policy Information Point (`/internal/{kind}s/{id}/tenant`), then asks OPA with
-`resource.tenant_id`. If OPA allows, `raisin-api` re-checks: service token present, JWT valid, JWT role allowed the
+`resource.tenant_id`. If OPA allows, `fundraising-api` re-checks: service token present, JWT valid, JWT role allowed the
 backing tool (same `roles.json`), tenant filter in SQL. Two independent layers must both be wrong for a cross-tenant read.
 
 **3. PII is a placeholder from the moment it enters.** Presidio finds `PERSON`, `EMAIL_ADDRESS`, `PHONE_NUMBER`,
@@ -91,7 +91,7 @@ is a deny.
 - **One agent runtime, not a gateway-only design.** LiteLLM alone cannot run a tool loop or call OPA per tool. The runtime is
   about 700 lines of Python and is the piece that would be rewritten for ECS. Approach C in the design (gateway-centric) was
   rejected for that reason.
-- **`raisin-api` plays three roles.** Identity provider, application API and system of record are one FastAPI process because
+- **`fundraising-api` plays three roles.** Identity provider, application API and system of record are one FastAPI process because
   the system needs them to exist, not to be separately deployable. In production Entra ID replaces the identity route (the runtime
   already verifies via JWKS, so Dex or Entra is a URL change).
 - **No row-level security in Postgres.** A single `poc` role owns all three databases. Tenant isolation is enforced in

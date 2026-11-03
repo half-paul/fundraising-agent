@@ -49,7 +49,7 @@ Response (HTTP 200):
 Trace `71343ded243c0f5bda29fde82d97bf74` (114 spans; 8.6 s of which 4.7 s was the first NeMo judge call warming up):
 
 ```
-raisin-api     POST /assistant                                   200
+fundraising-api     POST /assistant                                   200
  agent-runtime  POST /run                                        200
   agent-runtime  assistant.run
    agent-runtime  policy.decide            125 ms  stage=model result=allow tools.allowed=[7] tools.withheld=[get_my_donations, resend_receipt]
@@ -64,10 +64,10 @@ raisin-api     POST /assistant                                   200
     litellm        Received Proxy Server Request ... litellm_request
    agent-runtime  execute_tool get_donation  59 ms  tool.result=ok
     agent-runtime  pip.donation_tenant       36 ms  donation.id=873928
-     raisin-api     GET /internal/donations/{id}/tenant → db.query
+     fundraising-api     GET /internal/donations/{id}/tenant → db.query
     agent-runtime  policy.decide              7 ms  stage=tool result=allow reason=ok
      opa            POST /v1/data/{path...}
-    raisin-api     GET /api/donations/{id}   authz.result=allow  db.query ×2  tool.result.fields=[amount,currency,donor_id,id,status,transactions]
+    fundraising-api     GET /api/donations/{id}   authz.result=allow  db.query ×2  tool.result.fields=[amount,currency,donor_id,id,status,transactions]
    agent-runtime  chat gpt-4o-mini          650 ms  gen_ai.usage: 719 in / 12 out
    agent-runtime  guardrail.output         1959 ms  verdict=pass
     agent-runtime  guardrail.presidio.analyze  44 ms  entities=[]
@@ -82,7 +82,7 @@ What to point at:
   `decision_id` appears in OPA's own decision log (`docker compose logs opa | grep decision_id`).
 - The `chat` span's `input.value` is `{"messages":2,"roles":["system","user"],"tool_results":0,"chars":...,"sha256":"...","content":"redacted"}`.
   The question text is not in the trace.
-- `tool.result.fields` on the raisin-api span lists the keys returned, so you can see minimization without seeing values.
+- `tool.result.fields` on the fundraising-api span lists the keys returned, so you can see minimization without seeing values.
 - The whole request cost four LLM calls: two chat, one NeMo input judge, one NeMo output judge, plus one moderation call.
 
 ## S2: Donor asks the same question, finance tools withheld
@@ -193,7 +193,7 @@ agent-runtime  assistant.run
  chat gpt-4o-mini           610 in / 20 out  gen_ai.tool.calls=[find_donor]
  execute_tool find_donor    36 ms  tool.result=ok  tool.arg.resolved_placeholder=true
   policy.decide             stage=tool allow
-  raisin-api POST /api/donors/lookup  db.query ×2
+  fundraising-api POST /api/donors/lookup  db.query ×2
  chat gpt-4o-mini           679 in / 33 out
  guardrail.output           pass
 ```
@@ -214,7 +214,7 @@ Presidio validates TLDs and would not placeholder a `.test` address.
 }
 ```
 
-`get_my_donations` takes no arguments. `raisin-api /api/me/donations` joins `donors` on the JWT subject
+`get_my_donations` takes no arguments. `fundraising-api /api/me/donations` joins `donors` on the JWT subject
 (`donor.b@example.test`) within the JWT tenant. There is no way for the model to ask for someone else's donations because
 there is no parameter to put a different identity in.
 
@@ -234,14 +234,14 @@ Response (HTTP 200):
 Trace `065e3c6954bc51f83a4e2d16c44a7f43` (15 spans):
 
 ```
-raisin-api       POST /donate               tenant_id=tenant-a donation.id=900015 payment.result=declined
- raisin-api       db.query  (tenants)
- raisin-api       db.query  (donors upsert)
- raisin-api       db.query  (nextval donation_id_seq)
- raisin-api       db.query  (donations insert)
+fundraising-api       POST /donate               tenant_id=tenant-a donation.id=900015 payment.result=declined
+ fundraising-api       db.query  (tenants)
+ fundraising-api       db.query  (donors upsert)
+ fundraising-api       db.query  (nextval donation_id_seq)
+ fundraising-api       db.query  (donations insert)
  payment-gateway  POST /charge      12 ms   payment.result=declined payment.decline_code=51
- raisin-api       db.query  (transactions insert)
- raisin-api       db.query  (donations update)
+ fundraising-api       db.query  (transactions insert)
+ fundraising-api       db.query  (donations update)
 ```
 
 No `agent-runtime`, `litellm`, `opa` or `guardrails` span. No `gen_ai.*` attribute. The donor's email and phone (the
@@ -316,7 +316,7 @@ What to point at:
 ## S8: Finance lists declines and asks for a summary (two tool calls, tenant from JWT)
 
 Not re-captured here; see `make demo S=8`. The model calls `list_transactions(result=declined)` and
-`get_tenant_donation_summary()` in one or two rounds; both go to `raisin-api` endpoints whose SQL starts with
+`get_tenant_donation_summary()` in one or two rounds; both go to `fundraising-api` endpoints whose SQL starts with
 `WHERE tenant_id = %s` bound to the JWT tenant. The `list_transactions` schema has no tenant parameter, so the model cannot
 ask for another tenant even if it wanted to. `demo.py` asserts no tenant-a donation id appears in a tenant-b answer.
 
