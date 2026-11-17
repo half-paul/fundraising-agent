@@ -338,6 +338,10 @@ ALLOWED_INPUTS = [
     "Collect a diagnostic bundle for the payment-gateway service.",
     "Send a notification to the on-call slack channel about the elevated decline rate.",
     "This looks like card testing from 198.51.100.7 -- block that IP for an hour.",
+    # campaigns / Phase 3 read tools were missing from the rail's allowed scope (console report 2026-11-17)
+    "Show me all active campaigns",
+    "Show me the statistics for Campaign ABC.",
+    "List recent application errors and incidents.",
 ]
 # Story-generator input: a participant's notes are addressed to donors, not to the assistant, so contact lines are
 # normal. Presidio has already swapped the PII for <ENTITY_N> tokens by the time the text reaches the scan; the

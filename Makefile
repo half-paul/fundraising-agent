@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose
 
-.PHONY: help pull build up up-gate gate check-gate seed demo trace test test-tools evals opa-test opa-query opa-data registry-flip registry-reset ps logs down clean
+.PHONY: help pull build up up-gate gate check-gate seed demo trace test test-tools evals opa-test opa-query opa-data nemo-why registry-flip registry-reset ps logs down clean
 
 help:
 	@echo "make up            build + start all 13 services (waits for health; guardrails model download is minutes on first start)"
@@ -12,6 +12,7 @@ help:
 	@echo "make test-tools    data tools end to end: fundraising-api endpoints, NeMo rail regression, runtime tool loop (calls gpt-4o-mini)"
 	@echo "make evals         agent evaluation suite: 14 named scenarios (Phase 12) + metrics report; run with DEBUG_PANEL=on for full coverage"
 	@echo "make test-fail-closed   same plus stop/start of opa and guardrail services"
+	@echo "make nemo-why TEXT='...' [RAIL=output]   NeMo judge verdict + one-line reason for a text"
 	@echo "make registry-flip TOOL=get_donation APPROVED=false | make registry-reset"
 	@echo "make up-gate / gate / check-gate TRACE_ID=..   hour-one risk gate only"
 	@echo "make ps / logs / down / clean"
@@ -56,6 +57,10 @@ opa-query:
 
 opa-data:
 	$(COMPOSE) run --rm seed python -c 'import httpx,os,sys,json;print(json.dumps(httpx.get(os.environ["OPA_URL"]+"/v1/data/"+sys.argv[1],headers={"Authorization":"Bearer "+os.environ["OPA_TOKEN_SEED"]}).json(),indent=2))' '$(PATH)'
+
+RAIL ?= input
+nemo-why:
+	$(COMPOSE) exec -T nemo-guardrails python - '$(RAIL)' "$$TEXT" < scripts/nemo_why.py
 
 test: opa-test
 	python3 scripts/test_limits.py
